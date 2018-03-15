@@ -1,0 +1,15 @@
+#!/bin/bash
+
+export KRB5CCNAME=/tmp/krb5cc_enroll$$
+kinit -k -t /etc/krb5.enroll.keytab enroll/config.lcsr.rutgers.edu
+
+ipa service-add nfs/$1
+# may fail if service exists
+
+ipa-getkeytab -e aes256-cts,aes128-cts -p nfs/$1 -k /tmp/$1-nfs.kt
+chmod 644 /tmp/$1-nfs.kt
+
+kdestroy
+
+
+

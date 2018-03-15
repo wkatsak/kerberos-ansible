@@ -1,0 +1,117 @@
+.TH RENEWD 8
+.SH NAME
+renewd \- renew Kerberos credentials for all users automatically
+.SH SYNOPSIS
+.B renewd
+[-w waittime][-r renewwait][-m mintime][ -d ][ -t ]
+.SH DESCRIPTION
+.I  renewd
+renews credentials. It only watches credentials that have been
+specifically registered. pam_reg_cc can be used to register 
+credentials. Registration is done by creating a zero-length
+file in /run/renewdccs/, with the same name as the location of
+the credential cache. Some changes are made, e.g. changing / to \\.
+.PP
+When the session is finished, the credentials are automatically
+removed. To detemine when credentials are still in use, credserv
+look at the value of the KRB5CCNAME environment variable for all
+processes. Credentials in /var/lib/gssproxy/clients/ are assumed
+to be in use if there is any process owned by the same user.
+Other credentials are assumed to be in use if any process points
+to them with KRB5CCNAME.
+.PP
+This is part of a specific strategy to keep users from losing credentials
+or NFS access. The design of sshd, login, libkrb5 and rpc.gssd do
+not allow for completely transparent use of Kerberos without agreeing on
+some rules.
+.PP 
+Because multiple login sessions (particularly via sshd) can share the 
+same credemtials, you shouldn't do kdestroy on logout, nor can you allow sshd
+to do it via GSSAPICleanupCredentials. Instead, renewd will delete
+credentials that no longer correspond to any active session.
+.PP 
+For NFS to work reliably credentials must be either the primary
+credential in KEYRING:persistebt:UID, in a file
+in /tmp owned by the user, or in a credential listed in
+/etc/gssproxy/gssproxy.conf. We're currently using KEYRING for
+interaction logins, and files in /tmp for cron jobs. pam_reg_cc
+can (and at Rutgers does) copy the credentials for interactive
+sessions to /var/lib/gssproxy/clients/krb5cc_%U, which is used
+by gssproxy.
+.SH DELETION
+.PP
+In addition to renewing, renewd can remove out of date credential caches.
+pam_reg_cc touches files in /run/renewdccs to show what credentials
+it has registered. The
+name of the file is based on the credential cache name. Renewd
+will remove any of those credential caches if they aren't currently
+associated with an active process.
+.SH OPTIONS
+.PP
+waittime is the amount of time between successive runs. It defaults
+to 5 minutes.
+.PP
+renewwait is the amount of time between checks for tickets to renew.
+It defaults to 60 min, which is OK for fairly long ticket lifetimes
+such as the default 1 day.
+.PP
+mintime. If a ticket doesn't have at least this much life left, renewd
+will attempt to renew it. If that fails for some reason, it will continue
+to attempt to renew it until the ticket expires. Mintime defaults to
+mintime defaults to 12 hours, wihch is appropriate for 1 day ticket
+lifetimes. That allows 12 hours to renew the ticket. This is intentionally
+long, to allow us to survive possible failtures of network or services.
+.PP
+Tickets gotten using pam_kgetcred (typically tickets for cron jobs)
+are handled specially: they are "renewed" by calling kgetcred.
+We do this to deal with network failures. A long network failure could
+conceivably cause tickets to expire. At that point they can't be renewed.
+But kgetcred can get a new ticket whether or not the original is expired.
+We will attempt to use kgetcred for up to a week after the original ticket
+expires.
+.PP
+renewd normally detaches from the terminal, and logs to syslog.
+If -d is supplied it remains attached to the terminal, and prints
+debug and error messasges there. -d can be given more than once
+to increase the level of debugging.
+.PP
+-t will show the current registered tickets and exit
+.PP
+The time parameters can also be set in krb5.conf. Parameters
+on the command line will override those set in krb5.conf. Here
+are all the parameters that can be specified in krb5.conf, 
+with their default values.
+Set delete = none to disable deleting out of date credential files.
+.PP
+.nf
+[appdefaults]
+renewd = {
+  wait = 5
+  renewwait = 60
+  minleft = 720
+  delete = all    
+}
+.fi
+.PP
+renewd must run as root. Most Kerberos operations are performed as
+the user that owns the cache.
+.SH IMPLEMENTATTION
+.PP
+To do its work, renewd needs to know which credentials are still in 
+use. Renewing all credential files in /tmp would probably lead to a
+never-ending increae in files there. Renewd currently expects programs
+that create tickets to register them by creating a pointer in the
+session keyring. That keyring will last as long as there are any 
+processes still in existence from the original session. That includes
+detached servers that may be started from the session, even after the
+interactive part is finished. There is no other mechanism that quite
+as clearly has the right lifetime.
+.PP
+To register credentials you should use pam_reg_cc after any authentication
+modules that create Kerberos tickets. Note that pam_kgetcred does its 
+own registration, so pam_reg_cc is not needed for services that use
+pam_kgetcred (typically cron).
+.PP
+The keyring implementation is specific to Linux. To implement renewd
+for other operating systems you would need to find another way to track all
+processes started from a session.

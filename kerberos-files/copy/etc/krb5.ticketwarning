@@ -1,0 +1,11 @@
+
+**********************************************************************
+Your Kerberos ticket doesn't have enough lifetime left. You may lose
+access to your files during this session. We suggest using the
+command "kinit" to get a new ticket. 
+
+However this shouldn't happen.  On the system you came from, please
+use "which ssh" and verify that it is /usr/local/bin/ssh. If not, make
+sure /usr/local/bin is in your path. Contact help@cs.rutgers.edu if
+you're unable to fix things to avoid this message.
+**********************************************************************

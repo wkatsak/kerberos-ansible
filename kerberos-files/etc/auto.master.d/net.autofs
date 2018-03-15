@@ -1,0 +1,3 @@
+/net -hosts -sec=krb5:sys
+
+

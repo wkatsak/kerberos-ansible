@@ -1,0 +1,114 @@
+.TH KGETCRED 1
+.SH NAME
+kgetcred \- get Kerberos credentials from keytab stored on credserv server
+.SH SYNOPSIS
+.B kgetcred
+[ -d | -a | -l | -r | -w waittime | -P | -U user] [principal]
+.SH DESCRIPTION
+.I  kgetcred
+is designed for cron jobs or services that need access to Kerberos
+credentials, but don't have an interactive user to supply them.
+Kgetcred sends a request to a credserv server running on the 
+host specified in /etc/krb5.conf. If successful a Kerberos
+TGT is put into the user's default credentials cache, and that cache
+is registered to be maintained by renewd.
+.PP
+If successful, it prints the name of a cache. This can be used
+in a script, e.g. KRB5CCNAME=`kgetcred`
+.PP
+In case of error, a message is printed and exit with code 1.
+.PP
+However for normal (non-root) users, most sites will use pam_kgetcred to do this
+automatically for cron jobs. Hence for those users the only functions of interest
+are kgetcred -r, to register the current host to use kgetcred, and kgetcred -u and -l
+to unregister and list, respectively.
+.SH OPTIONS
+.TP
+.B \-l
+list the hosts and principals that can be used by this user. Currently not supported for root, so the principal will
+normally be the current user's primary one. User must be logged in with Kerberos credential.
+(Registered admininstrators may choose a different user.)
+.TP
+.B \-r
+register this current user to be able to use kgetcred on this host.
+Prompts for password. Because this function has a significant effect upon the user's security,
+we don't want to use credentials that might have been lying around for hours. Hence we ask
+for a new login.
+.TP
+.B \-u
+unregister this current user to be able to use kgetcred on this host.
+Prompts for a password. See above.
+.TP
+.B \-d
+print debugging messages
+.TP
+.B \-a
+get credentials for anonymous.user. Primarily intended for kinit -T, until IPA supports kinit -n.
+Requires a keytable for anonymous.user on the server.
+.TP
+.B \-w waittime
+amount of time to wait for a response from the server, in seconds. Default is 15 seconds for
+connect, 30 sec for response.
+.TP
+.B principal
+for root, a principal must be specified. Root can have multiple principals available for a host.
+.SH Privileged operations
+The following functions work only if a user has privileges.
+.TP
+.B \-P
+use privileges. This will cause the operation not to prompt for a password, but will use existing credentials.
+We trust that privileged users will destroy their credentials when no
+longer needed. Note that if a normal user does this, the operation will probably fail.
+.TP
+.B \-U user
+The current operation applies to that user.
+.TP
+.B \-H host
+For register and unregister, the specified host will be registered rather than the current host.
+.PP
+Be careful when acting as a privileged user. If you forget to specify -l, -r or -u, the default will be
+to get credentials. That will replace your current credentials.
+.SH "SETUP"
+Kgetcred must be installed setuid, because it has to read /etc/krb5.keytab to authenticate.
+It will drop privileges as soon as it's read the key table.
+.PP
+Note that there is a pam version of this, pam_kgetcred. We expect that this will be installed
+for cron. In that case most users won't need to call kgetcred from their jobs. They'll just
+need the -r and -u options to register keytables on the server.
+.PP
+Kgetcred needs the IP address of one or more servers running credserv. By default, it
+will use the same addresses as your Kerberos servers, looking them up in
+DNS based on SRV records. If this doesn't give the right result, you can
+specify the hostname of at least one server running credserv in  /etc/krb5.conf, e.g.
+.PP
+Kgetcred does not work for users with one-time passwords unless credserv is run
+with the impersonate option. Without impersonate, kgetcred keeps a copy of a key table
+for the user. Key tables can't be generated or used for users with one-time passwords.
+.PP
+.nf
+[appdefaults]
+kgetcred = {
+     server = myserver.domain.edu,backupserver.domain.edu
+}
+.fi
+.SH "For root cron jobs"
+For cron jobs running as root (or user cron jobs at sites where pam_kgetcred isn't installed),
+here's an example:
+.PP
+.nf
+    export KRB5CCNAME=/tmp/krb5cc_0_nightly
+    kgetcred scriptuser
+
+    kdestroy
+.fi
+.PP
+If your site is using renewd, the credentials file should start with /tmp/krb5cc_UID_.
+Unless your job spawns a background job, we recommend destroying the credentials at the end.
+.PP
+A normal user (presumably at a site not using pam_kgetcred) would use kgetcred without an
+argument. 
+.SH "Files"
+/tmp/kgetcred.last is used to store the lsat successful server. That way if the first 
+server in the list is down, every call doesn't have to wait for the timeout.
+.SH "SEE ALSO"
+credserv(8)

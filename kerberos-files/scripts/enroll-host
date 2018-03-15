@@ -1,0 +1,31 @@
+#!/bin/bash
+
+export KRB5CCNAME=/tmp/krb5cc_enroll$$
+kinit -k -t /etc/krb5.enroll.keytab enroll/config.lcsr.rutgers.edu
+
+if ipa host-add $1
+then
+# host-add worked, so it's a new host. tell the KDCs to update their iptables, so the host can connect
+# otherwise have to wait 10 min for cron job
+   # list of KDCs for CS.RUTGERS.EDU
+   readarray -t kdcs <<< "$(host -t srv _kerberos._tcp.cs.rutgers.edu | cut -d" " -f 8)"
+
+   # syncipt is a user with a forced command to update iptables. see wiki page on setting up KDC
+   for (( i=0; i<${#kdcs[@]}; i++ )); do
+      ssh syncipt@${kdcs[i]}
+   done
+
+else
+# host-add failed. Presumably host already existed
+# for some reason we've seen hosts without principals, so make sure it's there
+ ipa host-mod $1 --krbprincipalname=host/$1
+fi
+rm -f /tmp/$1.kt
+# have to specify -e because otherwise we get the old encryption types.
+# the server knows about them but the clients don't, so they'll cause failure
+ipa-getkeytab -e aes256-cts,aes128-cts -p host/$1 -k /tmp/$1.kt
+
+kdestroy
+
+
+

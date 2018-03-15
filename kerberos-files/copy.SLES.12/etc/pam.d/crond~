@@ -1,0 +1,15 @@
+# from ansible. don't edit, because changes will be overwritten
+# based on generic SLES 12 R 3, with the addition of pam_kgetcred
+#
+# The PAM configuration file for the cron daemon
+#
+#
+# No PAM authentication called, auth modules not needed
+auth     sufficient     pam_rootok.so
+account  sufficient     pam_listfile.so item=user sense=allow file=/etc/cron.allow onerr=succeed quiet
+auth     include        common-auth
+account  include        common-account
+password include        common-password
+session  required       pam_loginuid.so
+session  optional   	/usr/lib64/security/pam_kgetcred.so
+session  include        common-session

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+export PATH=/usr/sbin:/sbin:/usr/bin:/bin
+
+ktutil <<EOF
+rkt /etc/krb5.nfskey
+wkt /etc/krb5.keytab
+EOF
+
+rm /etc/krb5.nfskey
+

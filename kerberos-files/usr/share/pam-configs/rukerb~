@@ -1,0 +1,15 @@
+Name: Rutgers kerberos PAM modules
+Default: yes
+Priority: 1
+
+Session-Type: Additional
+Session-Interactive-Only: no
+Session:
+	[default=1 success=ignore] pam_succeed_if.so service = cron
+	optional	/usr/lib64/security/pam_kgetcred.so 
+	optional	/usr/lib64/security/pam_reg_cc.so usecollection
+{% if local_homedir is defined and local_homedir %}
+	optional	pam_mkhomedir.so
+{% else %}
+	optional	/usr/lib64/security/pam_kmkhomedir.so
+{% endif %}

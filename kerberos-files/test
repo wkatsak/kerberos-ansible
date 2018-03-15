@@ -1,0 +1,8 @@
+#!/bin/bash
+
+readarray -t kdcs <<< "$(host -t srv _kerberos._tcp.cs.rutgers.edu | cut -d" " -f 8)"
+
+for (( i=0; i<${#kdcs[@]}; i++ )); do
+ssh syncipt@${kdcs[i]}
+done
+

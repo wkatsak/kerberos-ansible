@@ -1,0 +1,60 @@
+# common krb5.conf, distributed by ansible
+# it's built from a template, so there may be minor
+# differences in different versions of linux# 
+
+{# krb5.conf.d isn't present in ubuntu and make sssd fail #}
+{% if krb5_conf_includedir %}
+includedir /etc/krb5.conf.d/
+#includedir /var/lib/sss/pubconf/krb5.include.d/
+{% endif %}
+
+[libdefaults]
+  default_realm = CS.RUTGERS.EDU
+  dns_lookup_realm = false
+  dns_lookup_kdc = true
+  rdns = false
+  ticket_lifetime = 24h
+  renew_lifetime = 365d
+  noaddresses = false
+  forwardable = true
+  udp_preference_limit = 0
+  default_ccache_name = {{ krb5_ccache }}
+
+[realms]
+  CS.RUTGERS.EDU = {
+    admin_server = krb1.cs.rutgers.edu:749
+    admin_server = krb2.cs.rutgers.edu:749
+    admin_server = krb4.cs.rutgers.edu:749
+    default_domain = cs.rutgers.edu
+    pkinit_anchors = FILE:/etc/krb5.kdc.pem
+  }
+
+[domain_realm]
+  .cs.rutgers.edu = CS.RUTGERS.EDU
+  cs.rutgers.edu = CS.RUTGERS.EDU
+  .lcsr.rutgers.edu = CS.RUTGERS.EDU
+
+[appdefaults]
+{% if ansible_fqdn == 'services.cs.rutgers.edu'
+# for services
+mkhomedird = {
+     homedirs=/ilab/users,/grad/users,/res/users,/fac/users,/staff/users,/devel/users
+     testfile = MOUNTED
+}
+{% endif %}
+# standard values for a normal client system
+{% if not local_homedir is defined or not local_homedir %}
+pam_kmkhomedir = {
+     server = services.cs.rutgers.edu
+     testfile = MOUNTED
+}
+{% endif %}
+kgetcred = {
+     ccname=FILE:/tmp/krb5cc_%{uid}_XXXXXX
+}
+register-cc = {
+    credcopy = /tmp/krb5cc_nfs_%U
+# 10 min more than renewd's cycle time for renew
+    ticket_minlife = 70m
+    ticket_warn_file = /etc/krb5.ticketwarning
+}

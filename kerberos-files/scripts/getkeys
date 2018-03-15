@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cat /etc/ssh/*pub | awk '{printf ( "%s,", $0 )}END{print}'

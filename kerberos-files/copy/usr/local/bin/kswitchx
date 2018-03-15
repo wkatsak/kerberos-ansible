@@ -1,0 +1,49 @@
+#!/bin/sh
+
+# for tcsh
+# alias kswitch 'setenv KRB5CCNAME `/usr/local/bin/kswitchx \!#:1` '
+
+# for bash
+#kswitch () {
+#  export KRB5CCNAME=`/usr/local/bin/kswitchx "$1"`
+#}
+
+USER=`whoami`
+if test -n "$SUDO_USER"
+  then
+  USER="$SUDO_USER"
+fi
+
+MYUID=`id -u`
+if test -n "$SUDO_UID"
+  then
+  MYUID="$SUDO_UID"
+fi
+
+if test "$1" = "$USER"
+  then
+  export KRB5CCNAME="KEYRING:persistent:$MYUID"
+  echo `klist | head -1 | cut -d" " -f 3`  "$1" >`tty`
+  echo "KEYRING:persistent:$MYUID"
+  exit 0
+
+else
+  export KRB5CCNAME="KEYRING:session:$MYUID"
+
+  if PATH="/usr/bin:/bin" kswitch -p "$1"
+    then
+    echo `klist | head -1 | cut -d" " -f 3`  "$1" >`tty`
+    echo "$KRB5CCNAME"
+    exit 0
+  else
+    if /usr/local/bin/skinit "$1" <`tty` >`tty` 2>&1
+      then
+      echo `klist | head -1 | cut -d" " -f 3`  "$1" >`tty`
+      echo "$KRB5CCNAME"
+      exit 0
+    fi
+  fi
+
+fi
+exit 1
+

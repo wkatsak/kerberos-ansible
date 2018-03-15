@@ -1,0 +1,1 @@
+12 * * * * root /usr/libexec/killjob.sh >/dev/null 2>&1

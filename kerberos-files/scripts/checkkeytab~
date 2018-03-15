@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# needs
+# yum openldap-clients
+# apt ldap-utils                                                                       
+# zypper openldap2-client
+
+export PATH=/usr/sbin:/sbin:/usr/bin:/bin
+
+# checks for /etc/krb5.keytab for the wrong host, e.g. from copying a VM               
+#   if that's true, deletes /etc/krb5.keytab and /etc/ssh/ssh_host_*                   
+#   and runs /usr/sbin/sshd_keygen                                                     
+# checks if /etc/ssh/ssh_host*pub matches what is in ldap. If not,                     
+#   script prints "sshkey". Otherwise prints nothing                                   
+
+HOSTNAME=`hostname`
+if klist -k -t /etc/krb5.keytab | grep "/$HOSTNAME@" >& /dev/null
+then
+:
+else
+# wrong host, remove bad keys and ipa configuration. otherwise ipa-client-install failss                                                                                      
+rm -rf /etc/krb5.keytab /etc/ssh/ssh_host*
+echo changed
+fi
+
+# make sure we have ssh keys                                                           
+if which sshd-keygen
+then
+  sshd-keygen
+else
+  ssh-keygen -A
+fi
+
+
+

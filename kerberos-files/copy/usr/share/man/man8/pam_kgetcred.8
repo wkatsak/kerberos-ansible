@@ -1,0 +1,90 @@
+.TH PAM_KGETCRED 8
+.SH NAME
+pam_kgetcred \- sets up Kerberos credentials for cron jobs
+.SH DESCRIPTION
+.I  pam_kgetcred [usecollection]
+sets up a Kerberos credential cache. It's intended for use
+with cron, because pam_sss or pam_krb5 is more appropriate
+for interactive sessions.
+.PP
+See kgetcred for details on how the process works. (pam_kgetcred
+shares most of its code with kgetcred.)
+To protect users' credentials, they must register using
+kgetcred -r. That authorizes credserv to give 
+kgetcred and pam_kgetcred credentials for them on the
+current host when requested by root. (Root is authenticated
+using a host credential generated fron  /etc/krb5.keytab.)
+.PP
+Pam_kgetcred sets KRB5CCNAME to the name of the credentials
+file, and registers it for renewd. (This is the same function
+performed by pam_reg_cc, so it doesn't make sense to use them
+both for the same service.)
+.PP
+If usecollecton is specified, and the cache is in KEYRING,
+KRB5CCNAME is set to the collection rather than that cache.
+E.g. if the cache is KEYRING:persistent:1003:1003, and
+usecollection is set KRB5CCNAME will be set to KEYRING:persistent:1003.
+This is for consistency with pam_reg_cc. 
+However we do not recommend using KEYRING collections for cron jobs.
+The problem is that the default cache can change if the user
+switches to a different cache during an interactive job. Cron jobs
+should probably have an independent environment. Thus we recommend
+using something like
+ccname=FILE:/tmp/krb5cc_%{uid}_XXXXXX. See below.
+.PP
+By default, pam_kgetcred uses the default credentials name
+from
+krb5.conf. You may wish to use a different credentials file
+for cron jobs, to isolate them from anything that happens
+in an interactive session. To do that you can specify the
+credentials using the ccname parameter in krb5.conf, e.g.
+.PP
+.nf
+[appdefaults]
+kgetcred = {
+     server = myserver.domain.edu, backup.domain.edu
+     ccname=FILE:/tmp/krb5cc_%{uid}_XXXXXX
+}
+.fi
+.PP
+(This is actually the pattern we'd recommend.)
+%{uid} will be replaced by the user's uid. %{username}
+will be replaced by the username. No other replacements
+are recognized. If the credentials
+are in /tmp, and the pattern ends in XXXXXX, mkstemp will be
+used to generate a unique filename, replacing XXXXXX with
+random characters.
+.PP
+If you are using NFS, the only credentials that make sense
+are the default cache in the KEYRING, as defined in krb5.conf,
+or a file in /tmp. If you are using renewd, the pattern
+it looks it for deletion of expired caches should match
+the pattern of credentials created here. By default
+renewd looks at all files starting with /tmp/krb5cc_%{uid}
+.PP
+Note that pam_kgetcred will silently ignore user 0 (root).
+Generally root is not a valid Kerberos principal. Many root cron
+jobs act on the local system. They don't need Kerberos credentials.
+Where credentials are needed, the job should start with a call to
+kgetcred that explicitly specifies the principal, e.g.
+.PP
+export KRB5CCNAME=`kgetcred scriptuser`
+.PP
+Such scripts should do a kdestroy at the end.
+.PP
+pam_kgetcred implements only session start (and a no-op session end).
+.PP
+The hostname of at least one server running credserv must be specified in /etc/krb5.conf, e.g.
+.PP
+.nf
+[appdefaults]
+kgetcred = {
+     server = myserver.domain.edu, backup.domain.edu
+}
+.fi
+.PP
+kgetcred is used for the key rather than pam_kgetcred, because kgetcred and pam_kgetcred
+use the same service.
+.PP
+/tmp/kgetcred.last stores the name of the server most recently used. This is to avoid
+timeouts if the first server is down.

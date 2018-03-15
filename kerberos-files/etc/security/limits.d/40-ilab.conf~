@@ -1,0 +1,23 @@
+# note that other limits are done through cgroups
+
+#max number of processes
+*    -    nproc          2000
+
+#max openfiles
+*    -    nofile          5000
+
+#max login
+*    -    maxlogins         15
+
+#max  memlock locked-in-memory address space (KB)
+*    soft    memlock          500000
+*    hard    memlock          1000000
+
+#sysprog
+@sysprog   - maxlogins        50
+@sysprog   - nproc            5000
+@sysprog   - nofile          1000000
+@sysprog   - memlock          1600000
+
+@sysprog   - priority       -10
+
