@@ -1,0 +1,208 @@
+---
+
+# I do flush handlers whenever I trigger a handler. I've had issues where
+# the script fails. But when you rerun it a start or restart is missed because
+  # the thing that triggered it is already there.
+
+- hosts: testhosts dresden faculty research staff services ilab grad apps coredev special minimal
+  become: true
+  environment:
+    PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
+  tasks:
+   - name: load config for distribution
+     include_vars: "os-vars/{{ ansible_distribution }}.{{ansible_distribution_major_version}}.yml"
+
+# the options are critical. the default will make the system unusable
+# -K causes it to keep symlinks. without that if we sync /lib64, it turns it
+#    from a symlink to a directory
+# -O causes it not to change times on directories to the time here
+   - name: common files
+     synchronize: 
+       src: "{{ playbook_dir }}/kerberos-files/copy/"
+       dest: / 
+       archive: no 
+       perms: yes 
+       recursive: yes
+       times: yes
+       rsync_opts:
+         - "-KO"
+         - "--exclude=*~"
+     register: syncresult1
+
+# os-specific files
+   - name: os-specific files
+     synchronize: 
+       src: "{{ playbook_dir }}/kerberos-files/copy.{{ ansible_distribution }}.{{ansible_distribution_major_version}}/"
+       dest: / 
+       archive: no 
+       perms: yes 
+       recursive: yes
+       times: yes
+       rsync_opts:
+         - "-KOl"
+         - "--exclude=*~"
+     register: syncresult2
+
+   - name: temp hack for apps
+     when: cluster is defined and cluster == 'apps' and ansible_distribution_major_version == '7'
+     copy: src="{{ playbook_dir }}/kerberos-files/password-auth-ac-apps" dest=/etc/pam.d/password-auth-ac
+
+   # limits. pam calls them, so the pam files have to be template driven
+   # For the moment limits is supported for all OSs, but setlimits onlly for Centos 7
+   # Setlimits could be implemented for SLES and the most recent Ubuntu, but not Ubuntu 14
+   - name: pam files for centos 7
+     when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+     template: src="{{ playbook_dir }}/kerberos-files/etc/pam.d/{{ item }}" dest=/etc/pam.d/{{ item }} mode=0644 owner=root
+     with_items: ['password-auth-ac', 'system-auth-ac']
+
+   - name: /usr/libexec/setlimits.sh if needed
+     when: setlimits is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/{{ setlimits }}" dest=/usr/libexec/setlimits.sh owner=root mode=755
+
+   - name: remove /usr/libexec/setlimits.sh if not needed
+     when: setlimits is not defined
+     file: path=/usr/libexec/setlimits.sh state=absent
+
+   - name: /etc/security/limits.d/40-lcsr.conf if needed
+     when: limits is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/security/limits.d/{{ limits }}" dest=/etc/security/limits.d/40-lcsr.conf owner=root mode=644
+
+   - name: remove /etc/security/limits.d/40-lcsr.conf if not needed
+     when: limits is not defined
+     file: path=/etc/security/limits.d/40-lcsr.conf state=absent
+
+   - name: /usr/libexec/killjob.sh if needed
+     when: killjob is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/{{ killjob }}" dest=/usr/libexec/killjob.sh owner=root mode=755
+
+   - name: /etc/cron.d/killjob if needed
+     when: killjob is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/cron.d/killjob" dest=/etc/cron.d/killjob owner=root mode=644
+
+   - name: remove /usr/libexec/killjob.sh  and /etc/cron.d/killjob if not needed
+     when: killjob is not defined
+     file: path={{ item }} state=absent
+     with_items: ['/etc/cron.d/killjob', '/usr/libexec/killjob.sh']
+
+# because rsync is done locally, it doesn't log the results on the target
+# log them now
+   - name: log results of rsync
+     when: syncresult1.changed or syncresult2.changed
+     command: logger -p user.info -t python
+     args:
+       stdin: "ansible-synchronize Changes done: {{ syncresult1.msg|default('') }}{{ syncresult2.msg|default('') }}"
+
+
+# install pkinit if possible
+   - name: install pkinit
+     when: has_kinit_n
+     package: name="{{ pkinit_package }}" state=installed
+
+# install chrony
+   - name: install chrony
+     package: name=chrony state=installed
+
+# skinit is slightly different depending upon whether kinit -n works
+   - name: skinit
+     template: src="{{ playbook_dir }}/kerberos-files/usr/local/bin/skinit" dest=/usr/local/bin/skinit mode=0755 owner=root
+
+# renewd is separate because we have to restart it if it changes
+   - name: renewd
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/sbin/renewd" dest=/usr/sbin/renewd owner=root mode=0755
+     notify: 
+     - restart renewd
+   - meta: flush_handlers
+
+# krb5.conf differs because ubuntu doesn't have /etc/krb5.conf.d and KEYRING doesn't work
+   - name: krb5.conf
+     template: src="{{ playbook_dir }}/kerberos-files/etc/krb5.conf" dest=/etc/krb5.conf owner=root mode=0644
+
+   - name: clear /var/lib/gssproxy/clients/krb5cc_%U
+     shell: rm -f /var/lib/gssproxy/clients/krb5cc_*
+     args:
+       removes: "/var/lib/gssproxy/clients/krb5cc_*"
+
+# sssd.conf differs per cluster and in other ways
+   - name: /etc/sssd/sssd.conf
+     template: src="{{ playbook_dir }}/kerberos-files/etc/sssd/sssd.conf" dest=/etc/sssd/sssd.conf mode=0600 owner=root
+     notify: 
+     - restart sssd
+   - meta: flush_handlers
+
+# nsswitch.conf is slightly different for ubuntu
+   - name: nsswitch.conf
+     template: src="{{ playbook_dir }}/kerberos-files/etc/nsswitch.conf" dest=/etc/nsswitch.conf owner=root mode=0644
+
+# sshd_config is slightly different for ubuntu
+   - name: /etc/ssh/sshd_config
+     template: src="{{ playbook_dir }}/kerberos-files/etc/ssh/sshd_config" dest=/etc/ssh/sshd_config mode=0600 owner=root
+     notify: 
+     - restart sshd
+   - meta: flush_handlers
+
+# sssd does its own caching. If nscd is running we may have old data cached
+#   that will make things not work for a while
+# Done in kerberos-boot. I don't think we need it here
+#   - name: kill nscd
+#     service: name=nscd enabled=no state=stopped
+#     ignore_errors: yes
+
+# centos has no usable way to supplement their generated pam. So full pam
+# files are included in copy.centos7. ubuntu lets you supply a file with modifications,
+# so we can rebuild the pam files using their configurator. This is the file with our changes.
+# it's separate because we have to call the configurator if it changes
+   - name: rukerb pam config
+     when: has_pam_configs
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/share/pam-configs/rukerb" dest=/usr/share/pam-configs/rukerb
+     notify:
+     - rebuild pam
+   - meta: flush_handlers
+
+# fix protection for /run/renewdccs. original code in pam_reg_cc set it to 700, not 0700
+   - name: fix protection for /run/renewdccs
+     file: path=/run/renewdccs mode=0700 state=directory owner=root
+
+# chrony.conf separate because we have to restart if changes
+   - name: disable ntp if there
+     service: name={{ ntp_name }} enabled=no state=stopped
+     failed_when: false
+   - name: disable ntpdate if there
+     when: ntpdate_name != ''
+     service: name={{ ntpdate_name }}  enabled=no state=stopped
+     failed_when: false
+   - name: install chrony config
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/chrony.conf" dest="{{ chrony_config }}" owner=root mode=0644
+     notify: 
+     - restart chrony
+
+# rename /etc/gssproxy/99-nfs-client.conf to /etc/gssproxy/99-nfs-client.conf.disabled
+   - name: rename /etc/gssproxy/99-nfs-client.conf
+     when: ansible_distribution == 'CentOS' and ansible_distribution_version == '7.4.1708'
+     command: removes=/etc/gssproxy/99-nfs-client.conf mv /etc/gssproxy/99-nfs-client.conf /etc/gssproxy/99-nfs-client.conf.disabled
+     notify:
+     - restart gssproxy
+
+   - name: lcsr sudoers
+     template: src="{{ playbook_dir }}/kerberos-files/etc/sudoers.d/lcsr" dest=/etc/sudoers.d/lcsr mode=0600 owner=root
+
+   - name: autofs /net
+     when: net_autofs is defined and net_autofs
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/auto.master.d/net.autofs" dest=/etc/auto.master.d/net.autofs mode=644 owner=root
+     notify:
+      - restart autofs
+
+  handlers:
+    - name: restart renewd
+      service: name=renewd state=restarted enabled=yes
+    - name: restart sssd
+      service: name=sssd state=restarted enabled=yes
+    - name: rebuild pam
+      command: pam-auth-update --package
+    - name: restart sshd
+      service: name={{ 'ssh' if ansible_distribution == 'Ubuntu' else 'sshd' }} state=restarted enabled=yes
+    - name: restart chrony
+      service: name={{ chrony_name }} enabled=yes state=restarted
+    - name: restart gssproxy
+      service: name=gssproxy state=restarted
+    - name: restart autofs
+      service: name=autofs state=restarted

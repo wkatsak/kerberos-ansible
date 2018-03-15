@@ -1,0 +1,398 @@
+
+#
+# /etc/ansible/ansible.cfg points the default here rather than /etc/ansisble/hosts
+#
+#   - Comments begin with the '#' character
+#   - Blank lines are ignored
+#   - Groups of hosts are delimited by [header] elements
+#   - You can enter hostnames or ip addresses
+#   - A hostname/ip can be a member of multiple groups
+
+# aggregates. every machine here must also be listed in a cluster
+
+[all:vars]
+domain = cs.rutgers.edu
+
+# this is one host of each OS type
+[testhosts]
+# ubuntu 14
+falcon.cs.rutgers.edu
+c217-3.cs.rutgers.edu nfsserver=true
+# ubuntu 16
+c217-4.cs.rutgers.edu nfsserver=true net_autofs=true
+# centos 7
+c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
+
+
+# centos 7
+tall2.rutgers.edu
+# SLES 12
+chipa1.sas.rutgers.edu groupsuffix=staff
+
+# CLUSTERS
+
+# The following must be defined for each cluster:
+
+# cluster name not currently used
+#   cluster = staff
+# must match a file is password-data. defines linux-admin and root
+#   password = machineroom
+
+# login can be controlled in two ways:
+#   groupsuffix=ilab
+#      login-ilab is used for login, slide-ilab for sudo [can be overriden]
+#      Note that login-ilab is done by an LDAP filter that does not require login-ilab
+#        to be a POSIX group. Indeed we recommend not making it POSIX. This 
+#        option is the normal one. The other form, grouplist, is used primarily
+#        for the apps cluster, where access varies per host. While the login 
+#        group can be non-posix, the sudo group must be POSIX.
+#      If it isn't overriden, slide defaults to slide-ilab.
+#        NOTE: the group slide is always included. slide-ilab is just additional
+#        people for that cluster. Slide includes coresysadmins. Suppose you
+#        want to add a student. DONT add him to coresysadmins unless you want him
+#        treated as a sysadmin for absolutely everything. Add to slide if you want
+#        slide on all systems, or slide-CLUSTER for a specific cluster.
+#   grouplist=coresysadmins,appstaff
+#      Members of those groups can login and sudo. This is used primarily for
+#        the apps cluster, where the systems have different sets of users.
+#        These can be non-posix groups if sudogroups is used to define sudo.
+#        If this list also defines slide, the groups must be POSIX.
+#      See note above for specifics on slide. In addition to these groups
+#        the group slide is always  included.
+# Sudo by default is defined by groupsuffix or grouplist. To override:
+#   sudogroups=slide-devel
+#      Members of those groups can do sudo. Must be paired with one of the 
+#        other two to define who can login. By default, groupsuffix and grouplist
+#        define both login and sudo. This overrides the sudo definition. Note that
+#        these must be POSIX groups. To avoid giving coresysadmins too many groups,
+#        I recommend using coresysadmins plus a group specific to the cluster.
+#      Remember, the group slide is always added, so this is just people you need
+#        in addition to those in slide
+
+# optional things:
+#  homedir=... set override  homedir in sssd.conf. if not specified, leave default
+#  force_password=yes. modifies sshd so must login with a password
+#  local_homedir=true. don't use pam_kmkhomedir. still need to define the location of the homedir
+#     using /etc/passwd if all users have entries, or homedir= for sss users
+#  sshpubkey. allow login with ssh user key. Please don't use without thinking. A user
+#     who logs in this way won't have a kerberos credential.
+#  mkhomedird=true. add config for mkhomedird to /etc/krb5.conf
+#  limits=filename, put file into /etc/security/limits.d/40-lcsr.conf, 
+#     from kerberos-files/etc/security/limits.d
+#  setlimits=filename, put file into /usr/libexec/setlimits.sh and call it from pam_exec, 
+#     from kerberos-files/usr/libexec. this probably only works for centos 7 and SLES 12
+#  killjob=file, put file into /usr/libexec/killjob.sh and make cron run it hourly
+#  net_autofs-true, set up /net
+# Commented out hosts are in the cluster but we haven't used ansible to set them up yet
+
+[staff]
+farside.lcsr.rutgers.edu
+services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true mkhomedird=true
+wordpress.cs.rutgers.edu homedir=/home local_homedir=true
+c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users
+chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
+#klinzhai.rutgers.edu
+#new-farside.rutgers.edu
+pleiades.lcsr.rutgers.edu
+klinzhai.lcsr.rutgers.edu
+
+[staff:vars]
+cluster = staff
+homedir = /staff/users
+groupsuffix = staff
+password = machineroom
+
+[dresden]
+eagle.cs.rutgers.edu
+falcon.cs.rutgers.edu
+hawk.cs.rutgers.edu
+murphy.cs.rutgers.edu   
+waldo.cs.rutgers.edu   
+morgan.cs.rutgers.edu 
+mister.cs.rutgers.edu  
+mab.cs.rutgers.edu    
+titania.cs.rutgers.edu 
+marcone.cs.rutgers.edu
+piggy.cs.rutgers.edu
+
+dresden.cs.rutgers.edu groupsuffix=dresden2
+raith.cs.rutgers.edu groupsuffix=dresden2
+bob.cs.rutgers.edu groupsuffix=dresden2
+mouse.cs.rutgers.edu groupsuffix=dresden2
+mac.cs.rutgers.edu groupsuffix=dresden2
+forthill.cs.rutgers.edu groupsuffix=dresden2
+
+[dresden:vars]
+cluster = dresden
+groupsuffix = dresden1
+password = machineroom
+local_homedir = true
+
+[services]
+netboot.lcsr.rutgers.edu
+c217-nfs.cs.rutgers.edu grouplist=coresysadmins,sysadmins,c217-users
+config.lcsr.rutgers.edu
+#mrtg.rutgers.edu
+#report.cs.rutgers.edu
+
+[services:vars]
+cluster = services
+sshpubkey = yes
+groupsuffix = staff
+password = machineroom
+local_homedir = true
+
+[apps-old]
+# fedora core. has old format for encrypted passwords
+# config in /etc/ldap.conf
+#    dhcp2.srv.lcsr.rutgers.edu grouplist=coresysadmins
+#    www6.srv.lcsr.rutgers.edu grouplist=coresysadmins,appweb,appstaff
+# centos 5. ansible doesn't work at all
+# config in /etc/ldap.conf   
+#    saguntum.cs.rutgers.edu grouplist=coresysadmins,appdba
+#    cannae.cs.rutgers.edu grouplist=coresysadmins,appdba
+#    nbackup.cs.rutgers.edu grouplist=coresysadmins
+#    dev1.lcsr.rutgers.edu grouplist=coresysadmins
+#    videowall.rutgers.edu grouplist=coresysadmins
+# centos 6. password works. currently not doing anything else
+# uses nslcd for nsswitch, ldap for pam
+# config in /etc/nslcd.conf and /etc/pam_ldap.conf
+applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+admin.videowall.cs.rutgers.edu grouplist=coresysadmins
+
+[apps-old:vars]
+cluster = apps-old
+password = apps
+local_homedir = true
+
+[apps]
+#drupal login
+#dev3.cs.rutgers.edu groupsuffix=drupal
+#dev3.lcsr.rutgers.edu groupsuffix=drupal
+# normal login
+dev2.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+dev5.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb,drupal
+dev6.cs.rutgers.edu grouplist=coresysadmins sshstricthostname=yes
+dev8.cs.rutgers.edu grouplist=coresysadmins
+dev4.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb,drupal
+dev4.lcsr.rutgers.edu grouplist=coresysadmins
+dev8.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev7.cs.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev9.cs.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev10.cs.rutgers.edu grouplist=coresysadmins,appsvenugopa sudogroups=coresysadmins
+dev5.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+dev7.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev9.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev10.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+dev13.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev6.lcsr.rutgers.edu grouplist=coresysadmins
+dev12.cs.rutgers.edu grouplist=coresysadmins
+dev13.cs.rutgers.edu grouplist=coresysadmins,appstaff
+dev14.cs.rutgers.edu grouplist=coresysadmins,appstaff
+
+[apps:vars]
+cluster = apps
+password = apps
+local_homedir = true
+sshpubkey = yes
+sss_try_first = yes
+
+[faculty]
+atanasoff.rutgers.edu 
+c221-f1.cs.rutgers.edu
+constance.cs.rutgers.edu password=machineroom sshstricthostname=yes
+dogmatix.rutgers.edu
+ganapathy.cs.rutgers.edu
+h363.cs.rutgers.edu
+h403-f1.cs.rutgers.edu
+klaatu.rutgers.edu
+porthos.cs.rutgers.edu password=machineroom sshstricthostname=yes
+stefi.rutgers.edu
+
+[faculty:vars]
+cluster = faculty
+homedir = /fac/users
+groupsuffix = faculty
+password = desktop
+
+# commented out are centos 5
+[research]
+# acmi.cs.rutgers.edu
+aurora.cs.rutgers.edu
+# bloustein.cs.rutgers.edu
+gryphon.rutgers.edu
+# secrets.rutgers.edu
+grande.rutgers.edu
+tall1.rutgers.edu
+tall2.rutgers.edu
+tall3.rutgers.edu
+tall4.rutgers.edu
+venti.rutgers.edu
+
+[research:vars]
+cluster = research
+homedir = /res/users
+groupsuffix = research
+password = machineroom
+
+[grad]
+c211-1.cs.rutgers.edu
+c211-2.cs.rutgers.edu
+c344-1.cs.rutgers.edu
+c346-1.cs.rutgers.edu
+h202-1.cs.rutgers.edu
+h202-2.cs.rutgers.edu
+h204-1.cs.rutgers.edu
+h204-2.cs.rutgers.edu
+h206-1.cs.rutgers.edu
+h206-2.cs.rutgers.edu
+h257-1.cs.rutgers.edu
+h257-2.cs.rutgers.edu
+h264a-1.cs.rutgers.edu
+h266-1.cs.rutgers.edu
+h266-2.cs.rutgers.edu
+h268-1.cs.rutgers.edu
+h268-2.cs.rutgers.edu
+h270-1.cs.rutgers.edu
+h270-2.cs.rutgers.edu
+h270-3.cs.rutgers.edu
+h270-4.cs.rutgers.edu
+h270-5.cs.rutgers.edu
+h402-1.cs.rutgers.edu
+h402-2.cs.rutgers.edu
+h405-1.cs.rutgers.edu
+h405-2.cs.rutgers.edu
+h408-1.cs.rutgers.edu
+h408-2.cs.rutgers.edu
+h410-1.cs.rutgers.edu
+h410-2.cs.rutgers.edu
+h412-1.cs.rutgers.edu
+h412-2.cs.rutgers.edu
+h414-1.cs.rutgers.edu
+h414-2.cs.rutgers.edu
+h415-1.cs.rutgers.edu
+h416-1.cs.rutgers.edu
+h416-2.cs.rutgers.edu
+h418-1.cs.rutgers.edu
+h418-2.cs.rutgers.edu
+h488-1.cs.rutgers.edu
+h488-2.cs.rutgers.edu
+h492-1.cs.rutgers.edu
+h492-2.cs.rutgers.edu
+
+[grad:vars]
+cluster = grad
+homedir = /grad/users
+groupsuffix = grad
+password = desktop
+#limits = 40-ilab.conf
+#setlimits = ilab-setlimits.sh
+
+[ilab]
+adapter.cs.rutgers.edu
+assembly.cs.rutgers.edu
+atlas.cs.rutgers.edu
+basic.cs.rutgers.edu
+batch.cs.rutgers.edu
+builder.cs.rutgers.edu
+c211-i1.cs.rutgers.edu
+c211-i2.cs.rutgers.edu
+c211-i3.cs.rutgers.edu
+cd.cs.rutgers.edu
+command.cs.rutgers.edu
+composite.cs.rutgers.edu
+cp.cs.rutgers.edu
+cpp.cs.rutgers.edu
+cray1.cs.rutgers.edu
+decorator.cs.rutgers.edu
+design.cs.rutgers.edu
+facade.cs.rutgers.edu
+factory.cs.rutgers.edu
+flyweight.cs.rutgers.edu
+gpu.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,login-ilab-gpu sudogroups=slide-ilab
+grep.cs.rutgers.edu
+interpreter.cs.rutgers.edu
+java.cs.rutgers.edu
+kill.cs.rutgers.edu
+less.cs.rutgers.edu
+lisp.cs.rutgers.edu
+ls.cs.rutgers.edu
+man.cs.rutgers.edu
+mediator.cs.rutgers.edu
+mv.cs.rutgers.edu
+null.cs.rutgers.edu
+pascal.cs.rutgers.edu
+patterns.cs.rutgers.edu
+perl.cs.rutgers.edu
+prolog.cs.rutgers.edu
+prototype.cs.rutgers.edu
+pwd.cs.rutgers.edu
+python.cs.rutgers.edu
+rm.cs.rutgers.edu
+singleton.cs.rutgers.edu
+specification.cs.rutgers.edu
+state.cs.rutgers.edu
+strategy.cs.rutgers.edu
+template.cs.rutgers.edu
+top.cs.rutgers.edu
+utility.cs.rutgers.edu
+vi.cs.rutgers.edu
+visitor.cs.rutgers.edu
+
+[ilab:vars]
+cluster = ilab
+homedir = /ilab/users
+groupsuffix = ilab
+password = desktop
+limits = 40-ilab.conf
+setlimits = ilab-setlimits.sh
+killjob = killjob-ilab.sh
+
+[coredev]
+c215-d1.cs.rutgers.edu
+c223-d1.cs.rutgers.edu
+c225-d1.cs.rutgers.edu
+c225-d2.cs.rutgers.edu
+c237-d1.cs.rutgers.edu
+c237-d2.cs.rutgers.edu
+c239-d1.cs.rutgers.edu
+c239-d2.cs.rutgers.edu
+c239-d3.cs.rutgers.edu
+
+[coredev:vars]
+cluster = coredev
+homedir = /devel/users
+groupsuffix = devel
+# slide-devel currently includes appstaff
+password = desktop
+
+[special]
+classvm08.cs.rutgers.edu grouplist=coresysadmins,curateddata
+classvm350.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,cs211s18,cs211s18-admin sudogroups=slide-ilab
+
+[special:vars]
+cluster = special
+password = machineroom
+local_homedir = true
+sshpubkey = yes
+sss_try_first = yes
+net_autofs = true
+
+# Systems we want minimal impact on. Unless login groups are declared you need
+# to be in /etc/passwd to login. Even system staff would need an entry. Generally
+# I'd encourage you to use groups to control login. Unless there are enough 
+# systems to create a separate cluster, just add parameters on the line, e.g.
+#     c217.cs.rutgers.edu grouplist=coresysadmins,c217-users sudogroups=slide
+# Make sure to define sudogroups, since they default to everyone in the grouplist.
+# We don't interfere with sudo settings already on the system.
+# Password isn't used unless someone runs passwords.yml on the system.
+
+[minimal]
+markov.cs.rutgers.edu
+
+[minimal:vars]
+cluster = minimal
+password = machineroom
+local_homedir = true
+net_autofs = true

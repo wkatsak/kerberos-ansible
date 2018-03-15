@@ -1,0 +1,42 @@
+---
+# /etc/krb5.conf starts with include dir
+krb5_conf_includedir: no
+# several things are done automatically by centos when krb5.keytab exists
+need_idmapd_start: yes
+need_securenfs_in_nfs: yes
+securenfs_in_nfs: NFS_SECURITY_GSS
+need_gssd_in_nfscommon: no
+need_gssd_start: no
+need_nfs_start: yes
+# we use rpc.gssd -t 600. where is the -t 600 specified?
+gssd_param_in_script: no
+gssd_param_in_sysconf: yes
+gssd_param_name_sysconf: GSSD_OPTIONS
+# older versions don't use gssproxy
+use_gssproxy: no
+krb5_ccache: KEYRING:persistent:%{uid}
+has_ipaclient: no
+# names of services for systemctl start are different
+ssh_service: sshd
+idmapd_service: nfs-idmapd
+gssd_service: rpc-gssd
+# does kinit -n work?
+has_kinit_n: yes
+# in /etc/nsswitch.conf, centos adds myhostname to hosts line
+has_myhostname: no
+# in sshd_config, where is the sftp helper
+sftp_file: /usr/lib/ssh/sftp-server
+# ubuntu lets us specify additions to pam config, so we can use their config program
+# with centos we have to edit the pam files ourselves
+has_pam_configs: no
+ntp_name: ntpd
+ntpdate_name: ntp-wait
+chrony_name: chronyd
+chrony_config: /etc/chrony.conf
+need_nfs_server_start: no
+nfs_server_name: nfs-kernel-server
+need_svcgssd_in_nks: no
+boot_packages: sssd,krb5-client,sssd-ipa,sssd-tools,chrony
+
+
+

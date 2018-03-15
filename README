@@ -1,0 +1,65 @@
+NOTES
+
+*  The command files are designed so it'a always safe to run them
+   again. I regularly run kerberos.yml on all known hosts.
+
+*  All coresysadmins should be able to do this stuff without becoming
+   root. The files here can be edited by anyone in that group.
+
+*  The files that are copied to the system are in kerberos-files. You
+   normally have to sudo to edit them. Make sure ownership and protection
+   is right in the copy directories, as they are copied as is.
+
+INSTRUCTIONS
+
+0. make sure your host is listed in hosts. To add to an existing cluster
+   it should be pretty obvious what to do.
+
+1. kerberos-boot. initial setup of Kerberos. This normally is only needed once.
+
+This assumes you're going to login as linux-admin and that sudo will work 
+without a password
+
+     ansible-playbook kerberos-boot.yml -u linux-admin --ask-pass --limit=hostname
+
+If you need to su with a password, you have to specify that:
+
+     ansible-playbook kerberos-boot.yml -u linux-admin --ask-pass --become-method=su --become-user=root --ask-become-pass --limit=hostname
+
+2. kerberos. the things that may be updated, so we redo this file regularly.
+
+Step 1 sets things so all the sysadmins can login without a password and do
+sudo. So you don't need many options
+
+     ansible-playbook kerberos.yml --limit=xxx
+
+3. linux-admin and root passwords:
+
+     ansible-playbook passwords.yml --ask-vault-pass --limit=xxx
+
+The vault password is in 1Password. The vault is an encrypted file containing
+the encrypted passwords for linux-admin and root.
+
+TO DO A COMMAND ON ALL SYSTEMS
+
+Suppor you wanted to see if renewd is running on all of the apps systems:
+
+  ansible apps -m command -a 'pgrep renewd'
+
+-m command runs one command directly. If you need to use > | or other shell
+characters use -m shell.
+
+Use "all" rather than "apps" to run the command on every system in hosts.
+
+VAULT
+
+The vault is a set of encrypted files containing password information.
+
+E.g. password-data/machineroom.yml has the linux-admin and root passwords
+normally used for systems in the machine room. (Apps uses a separate
+password.)
+
+To create or edit the vault file:
+
+     ansible-vault create|edit password-data/machineroom.yml
+

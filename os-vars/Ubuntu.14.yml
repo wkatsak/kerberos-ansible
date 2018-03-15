@@ -1,0 +1,33 @@
+---
+krb5_conf_includedir: no
+need_idmapd_start: yes
+need_gssd_in_nfscommon: yes
+need_securenfs_in_nfs: no
+securenfs_in_nfs:
+need_gssd_start: yes
+need_nfs_start:	no
+gssd_param_in_script: yes
+gssd_param_in_sysconf: no
+gssd_param_name_sysconf: 
+use_gssproxy: no
+krb5_ccache: /tmp/krb5cc_%{uid}
+has_ipaclient: no
+ssh_service: ssh
+idmapd_service: idmapd
+gssd_service: gssd
+has_kinit_n: yes
+has_myhostname: no
+sftp_file: /usr/lib/openssh/sftp-server
+has_pam_configs: yes
+ntp_name: ntp
+ntpdate_name: 
+chrony_name: chrony
+chrony_config: /etc/chrony/chrony.conf
+need_nfs_server_start: yes
+nfs_server_name: nfs-kernel-server
+need_svcgssd_in_nks: yes
+nfs_server_package: nfs-kernel-server
+boot_packages: krb5-user,sssd,nfs-common,tcsh,chrony
+pkinit_package: krb5-pkinit
+
+
