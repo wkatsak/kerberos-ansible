@@ -185,6 +185,10 @@
    - name: lcsr sudoers
      template: src="{{ playbook_dir }}/kerberos-files/etc/sudoers.d/lcsr" dest=/etc/sudoers.d/lcsr mode=0600 owner=root
 
+   - name: autofs /net, directory
+     when: net_autofs is defined and net_autofs
+     file: path=/etc/auto.master.d mode=755 owner=root state=directory
+
    - name: autofs /net
      when: net_autofs is defined and net_autofs
      copy: src="{{ playbook_dir }}/kerberos-files/etc/auto.master.d/net.autofs" dest=/etc/auto.master.d/net.autofs mode=644 owner=root
