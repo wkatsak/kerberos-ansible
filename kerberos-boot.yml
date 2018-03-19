@@ -245,9 +245,10 @@
    - meta: flush_handlers
 
    - name: /etc/systemd/system/rpc-gssd.service.d/time.conf
-     when: gssd_param_in_systemd_files is defined
-     copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d dest=/etc/systemd/system/rpc-gssd.service.d
+     when: gssd_param_in_systemd_file is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/" dest=/etc/systemd/system/rpc-gssd.service.d
      notify:
+       - daemon reload
        - restart gssd
    - meta: flush_handlers
 
@@ -281,8 +282,10 @@
       service: name={{ ssh_service }} state=restarted enabled=yes
     - name: restart sssd
       service: name=sssd state=restarted enabled=yes
+    - name: daemon reload
+      command: systemctl daemon-reload
     - name: restart gssd
-      service: name={{ gssd_service }} state={{ (gssd_param_in_systemd_file is defined ? 'reloaded' : 'restarted') }}
+      service: name={{ gssd_service }} state=restarted
     - name: restart nfs
       when: need_nfs_start
       service: name=nfs state=restarted
