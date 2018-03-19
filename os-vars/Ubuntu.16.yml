@@ -6,7 +6,8 @@ need_securenfs_in_nfs: no
 securenfs_in_nfs:
 need_gssd_start: yes
 need_nfs_start:	no
-gssd_param_in_script: yes
+gssd_param_in_script: no
+gssd_param_in_systemd_file: yes
 gssd_param_in_sysconf: no
 gssd_param_name_sysconf: 
 use_gssproxy: no

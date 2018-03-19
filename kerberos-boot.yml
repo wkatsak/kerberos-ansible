@@ -244,6 +244,13 @@
        - restart gssd
    - meta: flush_handlers
 
+   - name: /etc/systemd/system/rpc-gssd.service.d/time.conf
+     when: gssd_param_in_systemd_files is defined
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d dest=/etc/systemd/system/rpc-gssd.service.d
+     notify:
+       - restart gssd
+   - meta: flush_handlers
+
 # nfs server for ubuntu
    - name: nfs-kernel-server
      when: need_svcgssd_in_nks and nfsserver is defined and nfsserver == 'true'
@@ -275,7 +282,7 @@
     - name: restart sssd
       service: name=sssd state=restarted enabled=yes
     - name: restart gssd
-      service: name={{ gssd_service }} state=restarted
+      service: name={{ gssd_service }} state={{ (gssd_param_in_systemd_file is defined ? 'reloaded' : 'restarted') }}
     - name: restart nfs
       when: need_nfs_start
       service: name=nfs state=restarted
