@@ -27,3 +27,9 @@ aci: (targetfilter=(objectClass=ipahost))(targetattr="managedby")
  allow (all) (userattr="creatorsName#USERDN"); )
 ```
 
+To automatically add new hosts to research netgroup:
+
+ipa hostgroup-add research-user
+ipa automember-add research-user --type=hostgroup 
+ipa automember-add-condition research-user --type=hostgroup --key=nshostlocation --inclusive-regex='^research-user$'
+ipa netgroup-add-member research-user-maint --hostgroup=research-user
