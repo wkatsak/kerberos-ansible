@@ -9,6 +9,27 @@ kerberos.yml is designed to be run again every time the software changes.
 
 There are lots of configuration options in the hosts file. There will be a script to set it up.
 
+## Requirements for push-mode ansible
+Uses a script to create host entries
+That uses /etc/krb5.enroll.keytab 
+with principal enroll/config.lcsr.rutgers.edu
+
+That principal has role Rutgers add host
+Privilege: Host Enrollment
+This is a standard privilege, but we added some permissions to it. Here are all of them:
+System: Add Hosts
+System: Add krbPrincipalName to a Host
+System: Enroll a Host
+System: Manage Host Certificates
+System: Manage Host Enrollment Password
+System: Manage Host Keytab
+System: Manage Host Principals
+System: Manage Host SSH Public Keys
+System: Add Services
+System: Manage Service Keytab
+System: Change User password
+
+## Requirements for kerberize script
 The kerberize script depends upon this:
 
 User role: rutgers user add host
