@@ -1,0 +1,384 @@
+#!/bin/bash
+
+# kerberize a host. Mostly this does an ansible-pull of our normal ansible scripts
+# but for that to work need to
+# * install kerberos, ansible, and git [git is needed for ansible-pull]
+#   With Ubuntu we need ansible's special repo; an old ansisible won't do
+# * set up a minimal kerberos environment, so we can do kerberized ssh
+# * ssh commands to a server that's already set up to generate a keytable
+# * install the key table
+# * ask the user for info on who should login
+# * generate /etc/ansible/hosts for localhost with a setup based on the user's answers
+# * do kerberos-boot.yml and kerberos.yml
+
+DISTRO=`lsb_release -i -s`
+
+SERVER=aurora.cs.rutgers.edu
+
+# start by testing a bunch of stuff. For likely problem situation, try to
+# give the user a good error messasge rather than just failing later.
+# Some of the checks can't be done until we have a kerberos ticket
+
+
+if ! hostname | grep '\.' ; then
+echo -e "\n***************\n"
+echo Your hostname must be a fully-qualified name, e.g. foo.cs.rutgers.edu,
+echo not just foo. To change that, fix it in /etc/hostname, and then do
+echo    hostname -F /etc/hostname
+echo
+exit 1
+fi
+
+echo
+echo -e "\n***************\n"
+echo "This process will only be useful for users who login with their netid."
+echo "If you're already using netids in /etc/passwd, that's great. If you're"
+echo "going to get user information from our central server, that's OK too."
+echo "But if you're depending upon your /etc/passwd for users, only users"
+echo "whose username is their netid will be able to use Kerberos. Others will"
+echo "still be able to login."
+echo
+echo "In many cases you can edit /etc/passwd and change the usernames to the"
+echo "person's netid. If that's not possible, then in /etc/passwd"
+echo "after each entry for a human (things like root and mysql don't count),"
+echo "add a second entry that is identical except that it starts with the NetID."
+echo "You will need to login with the NetID, but the old usernames will continue to work."
+echo
+echo "Hit CR to continue."
+read foo
+
+# need to be able to ssh commands to aurora
+
+echo
+echo Setting up a minimal Kerberos configuration...
+echo
+if test "$DISTRO" = "Ubuntu" ; then
+apt-get -qq install krb5-user
+elif test "$DISTRO" = "Centos" ; then
+yum install -q -y krb5-workstation
+else
+echo sorry, this script supports Ubuntu and Centos 7 only
+echo
+exit 1
+fi
+
+cat > /etc/krb5.conf <<"EOF"
+[libdefaults]
+  default_realm = CS.RUTGERS.EDU
+  dns_lookup_realm = false
+  dns_lookup_kdc = true
+  rdns = false
+  noaddresses = false
+  forwardable = true
+  default_ccache_name = /tmp/krb5cc_%{uid}
+
+[realms]
+  CS.RUTGERS.EDU = {
+    admin_server = krb1.cs.rutgers.edu:749
+    admin_server = krb2.cs.rutgers.edu:749
+    admin_server = krb4.cs.rutgers.edu:749
+    default_domain = cs.rutgers.edu
+    pkinit_anchors = FILE:/etc/krb5.kdc.pem
+  }
+
+EOF
+
+if grep -i '^\s*GSSAPIAuthentication' /etc/ssh/ssh_config; then
+sed -i.old 's/^\s*GSSAPIAuthentication.*/GSSAPIAuthentication yes/gI' /etc/ssh/ssh_config
+else
+echo GSSAPIAuthentication yes >> /etc/ssh/ssh_config
+fi 
+
+echo -e "\n***************\n"
+echo "Please login with a CS username (NetID) and password."
+echo "The user need not exist on this system. However it must be a faculty"
+echo "or someone else authorized to enroll a host in our Kerberos system."
+echo "It must be authorized to login to the research cluster."
+echo "If you aren't a faculty member, and you aren't sure you've been authorized,"
+echo "please contact help@cs.rutgers.edu"
+echo
+echo -n "Username: "
+read USERNAME
+
+# in case user has one-time password need a cache for kinit's "armor"
+KRB5CCNAME=/tmp/krb5cc_temp$$ kinit -n
+if ! kinit -T /tmp/krb5cc_temp$$ "$USERNAME" ; then
+echo -e "\n***************\n"
+echo
+echo "You must be able to login for this script to work."
+echo
+exit 1
+fi
+kdestroy -c /tmp/krb5cc_temp$$
+
+# see if ssh works, so we can give a good error message
+if ! ssh $USERNAME@$SERVER echo Can login to $SERVER >/dev/null 2>&1; then
+echo -e "\n***************\n"
+echo
+echo "You must be able to login to $SERVER for this script to work."
+echo
+exit 1
+fi
+
+# now see if user has the right permission
+if ! (ssh $USERNAME@$SERVER ipa user-show $USERNAME | grep "Rutgers user add host") >/dev/null 2>&1 ; then
+echo -e "\n***************\n"
+echo
+echo "You aren't authorized to register hosts. All faculty are authorized."
+echo "If you aren't a faculty member, please ask the faculty member responsible"
+echo "for this system to request help@cs.rutgers.edu to authorized you."
+echo
+exit 1
+fi
+
+# things will probably work. so get info from the user
+
+echo -e "\n***************\n"
+echo "This script will change the way passwords are checked. You will now use"
+echo "your Computer Science password. (The old passwords will still work, but"
+echo "if you use them you may not be able to access your files.)"
+echo 
+echo "There are two choices for who can login:"
+echo " 1) Just people listed in /etc/passwd."
+echo " 2) just people in a specific group."
+echo
+echo "The second option takes a few minutes to set up, but it's better if you"
+echo "have several computers. With a group, you can add and remove users in one place,"
+echo "rather than having to update /etc/passwd on each system."
+
+while true ; do
+echo 
+echo "Who do you want to be able to login? Enter 1 or 2"
+read ANSWER
+if test "$ANSWER" = "1" -o "$ANSWER" = "2" ; then
+   break;
+fi
+echo 
+echo "Please answer 1 if you want only people in /etc/passwd to be able to"
+echo "login, or 2 if you want members of a specified group to be able to login."
+done
+
+if test "$ANSWER" = "2" ; then
+  echo -e "\n***************\n"
+  echo "Please enter the group name. The group must be registered in the computer"
+  echo "science server. If you don't have a group, go to"
+  echo "https://services.cs.rutgers.edu/accounts and user the group screen to create"
+  echo "a group. Please check the box saying that it is a Guest group."
+  echo
+  echo "Enter group name"
+  read GROUP
+  if ! ssh $USERNAME@$SERVER ipa group-show "$GROUP" > /dev/null 2>&1 ; then
+    echo -e "\n***************\n"
+    echo "The group $GROUP does not appear to exist. Either that or you can't"
+    echo "login to $SERVER. Would you like to create the group? (This will only work"
+    echo "if you can login to $SERVER."
+    echo
+    echo "Type \"yes\" to create it, anything else not to."
+    read OK
+    if test "$OK" = "yes" ; then
+      if ssh $USERNAME@$SERVER ipa group-add "$GROUP" --nonposix --addattr=businesscategory=login ; then
+      ssh $USERNAME@$SERVER ipa group-add-member "$GROUP" --users=$USERNAME
+      else
+      echo -e "\n***************\n"
+      echo "The attempt to add $GROUP failed. Most likely causes:"
+      echo " * You can't login to $SERVER."
+      echo " * You aren't authorized to create groups. Faculty are always authorzed."
+      echo "   They can request others to be."
+      echo
+      echo "We will continue with the setup, but you should make sure that the group gets created."
+      echo
+      fi
+    fi
+  fi
+fi
+
+while true ; do
+echo -e "\n***************\n"
+echo "Do you want all LCSR systems staff to be able to login to this system?"
+echo
+echo -n "Please type \"yes\" or \"no\": "
+read LCSR
+if test "$LCSR" = "yes" -o "$LCSR" = "no" ; then
+   break;
+fi
+done
+
+# have all the info we need. Now start doing stuff
+# First step is creating the key table
+# here's a script. It gets sent to aurora to do the work
+
+cat > makekt <<"EOF"
+#!/bin/sh
+
+PATH=/usr/bin:/bin:/usr/sbin:/sbin
+export PATH
+
+rm -f /tmp/`whoami`."$1".kt
+
+# the nshostlocation=research-user triggers an automember that adds it to the research netgroup
+if ! ipa host-add "$1" --addattr=nshostlocation=research-user >/tmp/$$ 2>&1 ; then
+if ! grep "already exists" /tmp/$$ ; then
+cat /tmp/$$
+echo
+echo "The most likely cause is that you aren't authorized to register hosts."
+echo Faculty are authorized. They can request for others to be.
+echo Please contact the faculty member who is responsible for this system
+echo and ask them to request help@cs.rutgers.edu to authorize you.
+echo
+exit 1
+fi
+fi
+
+# to get a key table, the user must be manager for the host.
+# I have an ACL that lets the creator add the managedby attribute
+
+# don't try adding user as manager if he's already there. That allows
+# admins to add a managedby attribute to let someone else set up a host
+# that already exists. 
+if ! (ldapsearch -Y GSSAPI fqdn="$1" managedby | grep uid=`whoami`) >/dev/null 2>&1 ; then
+if ! ipa host-mod "$1" --addattr=managedby=uid=`whoami`,cn=users,cn=accounts,dc=cs,dc=rutgers,dc=edu >/tmp/$$ 2>&1; then
+if ! grep "no modifications to be performed" /tmp/$$ ; then
+cat /tmp/$$
+echo
+echo The most likely cause is that this host was already registered by someone else.
+echo Please contact help@cs.rutgers.edu.
+echo
+exit 1
+fi
+fi
+fi
+
+# beyond this point the most likely causes of problems have already
+# been checked. I don't see how they could fail.
+
+if ! ipa-getkeytab -p host/"$1" -k /tmp/`whoami`."$1".kt ; then
+exit 1
+fi
+
+sleep 2
+
+# Have the main key table. Add nfs principal to it
+# to get the nfs key, have to kinit as the host.
+# With IPA the host has rights to get a keytable for nfs
+
+KRB5CCNAME=/tmp/krb5cc_host$$
+if ! kinit -k -t /tmp/`whoami`."$1".kt host/"$1" ; then
+exit 1
+fi
+
+if ! ipa service-add nfs/"$1"  >/tmp/$$ 2>&1 ; then
+if ! grep "already exists" /tmp/$$ ; then
+cat /tmp/$$
+kdestroy
+exit 1
+fi
+fi
+
+if ! ipa-getkeytab -p nfs/"$1" -k /tmp/`whoami`."$1".kt ; then
+kdestroy
+exit 1
+fi
+
+kdestroy
+exit 0
+
+EOF
+
+# send the script to aurora
+
+if ! scp makekt $USERNAME@$SERVER:makekt ; then
+echo -e "\n***************\n"
+echo "Unable to copy file to $SERVER. Make sure you can login to $SERVER."
+echo
+exit 1
+fi
+
+# run the script to create key table on aurora
+# makekt should print an explanation if there's an error
+
+if ! ssh $USERNAME@$SERVER sh makekt `hostname`; then
+echo "Unable to create key table for this host."
+exit 1
+fi
+
+# get the key table 
+if ! scp $USERNAME@$SERVER:/tmp/$USERNAME.`hostname`.kt /etc/krb5.keytab ; then
+echo -e "\n***************\n"
+echo "Unable to retrieve key table for this host from $SERVER."
+exit 1
+fi
+
+# don't leave it lying around on aurora
+ssh $USERNAME@$SERVER rm /tmp/$USERNAME.`hostname`.kt
+
+if test "$DISTRO" = "Ubuntu" ; then
+
+echo -e "\n***************\n"
+echo "NOTE: You may need to hit carriage return during ansible installation"
+echo
+
+apt-get -qq update
+apt-get -qq install software-properties-common
+apt-add-repository ppa:ansible/ansible
+apt-get -qq update
+apt-get -qq install ansible git
+
+elif test "$DISTRO" = "Centos" ; then
+
+yum -q -y install ansible git
+
+fi
+
+# /etc/ansible/hosts has parameters that define who can login
+# They are created based on the answers given by the user above.
+
+cat > /etc/ansible/hosts <<EOF
+# This should have one line beginning with "localhost." The only thing you are likely to 
+# change is the grouplist and sudogroups options. Remove them if you want only users in
+# /etc/passwd. Otherwise grouplist should have the group whose members you want to be
+# able to login. Also include coresysadmins if you want LCSR systems staff to be able
+# to login. If you define grouplist, also include sudogroups=slide (or everyone in the
+# groups will be able to sudo without a password).
+#
+# Here's an example that includes both:
+#   localhost nfsserver=true local_homedir=true grouplist=coresysadmins,login-research sudogroups=slide net_autofs=true domain=cs.rutgers.edu
+# To use /etc/passwd for normal users but still allow LCSR system staff to login use
+#   localhost nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+# To use /etc/passwd and not allow LCSR system staff use
+#   localhost nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu
+# If you already have users authorized to sudo, this setup won't disturb them.
+
+EOF
+if test "$ANSWER" = 1 ; then
+  if test "$LCSR" = "yes" ; then
+  echo localhost nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu>> /etc/ansible/hosts
+  else
+  echo localhost nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu>> /etc/ansible/hosts
+  fi
+else
+  if test "$LCSR" = "yes" ; then
+  echo "localhost nfsserver=true local_homedir=true grouplist=coresysadmins,$GROUP sudogroups=slide net_autofs=true domain=cs.rutgers.edu" >> /etc/ansible/hosts
+  else
+  echo "localhost nfsserver=true local_homedir=true grouplist=$GROUP sudogroups=slide net_autofs=true domain=cs.rutgers.edu" >> /etc/ansible/hosts
+  fi
+fi
+
+# now do the real work. 
+
+ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos-boot.yml
+ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml
+
+
+echo -e "\n***************\n"
+echo "You can run this script again if you need to. However we don't recommend doing"
+echo "that once Kerberos is set up. If Kerberos is working, there are"
+echo "less disruptive ways to update the software or change who can login."
+echo 
+echo "To update the Rutgers Kerberos software or setup, run"
+echo "  ansible-pull -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml"
+echo "Other Kerberos software will be updated by the normal package manager."
+echo
+echo "If you need to change who can login, edit /etc/ansible/hosts and then run"
+echo "  ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml"
+echo 
+echo "(If you forget this information, just look at the end of the kerberize script.)"
