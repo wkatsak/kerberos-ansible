@@ -30,6 +30,8 @@ System: Change User password
 ```
 
 ## Requirements for kerberize script
+services.cs.rutgers.edu/krb5.kdc.pem must be set up. It's retrieved by the script using curl -o.
+
 The kerberize script depends upon this:
 
 ```
