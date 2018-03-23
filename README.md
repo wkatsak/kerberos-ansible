@@ -1,13 +1,13 @@
 # kerberos-ansible
 Repository to be used with ansible-pull. It will kerberize a system. Currently supports Ubuntu 14 and 16, Centos 6 and 7, SLES 12.
 
-You must generate and install /etc/krb5.keytab before using this.
+If used in push mode on our config server, /etc/krb5.keytab is generated as part of this process. If used in pull mode on a new machine, the key table has to be generated before using ansible. The kerberize script does that, and sets up the environment so the ansible scripts will work.
 
 kerberos-boot.yml must be done first. Normally it only needs to be done once.
 
 kerberos.yml is designed to be run again every time the software changes.
 
-There are lots of configuration options in the hosts file. There will be a script to set it up.
+There are lots of configuration options in the hosts file. If you use the kerberize script to run this in pull mode, it will generate a hosts for based an a couple of questions asked in the script.
 
 ## Requirements for push-mode ansible
 Uses a script to create host entries. That uses /etc/krb5.enroll.keytab with principal enroll/config.lcsr.rutgers.edu
