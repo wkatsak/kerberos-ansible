@@ -82,15 +82,18 @@
 
 # set up chrony. Time needs to be right for other things to work
    - name: disable ntp if there
+     when: chrony_broken is not defined
      service: name={{ ntp_name }} enabled=no state=stopped
      failed_when: false
    - name: disable ntpdate if there
-     when: ntpdate_name != ''
+     when: ntpdate_name != '' and chrony_broken is not defined
      service: name={{ ntpdate_name }}  enabled=no state=stopped
      failed_when: false
    - name: install chrony config
+     when: chrony_broken is not defined
      copy: src="{{ playbook_dir }}/kerberos-files/etc/chrony.conf" dest=/etc/chrony.conf owner=root mode=0644
    - name: enable chrony
+     when: chrony_broken is not defined
      service: name={{ chrony_name }} enabled=yes state=started
 # u14: service ntp
 

@@ -24,6 +24,8 @@ ntp_name: ntp
 ntpdate_name: 
 chrony_name: chrony
 chrony_config: /etc/chrony/chrony.conf
+# installing chrony removes mate. I don't think we want to do this
+chrony_broken: yes
 need_nfs_server_start: yes
 nfs_server_name: nfs-kernel-server
 need_svcgssd_in_nks: yes
