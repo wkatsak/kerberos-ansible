@@ -3,7 +3,12 @@
 export KRB5CCNAME=/tmp/krb5cc_enroll$$
 kinit -k -t /etc/krb5.enroll.keytab enroll/config.lcsr.rutgers.edu
 
-if ipa host-add $1
+EXTRA=""
+if test "$2" = "researchuser" ; then
+EXTRA="--addattr=nshostlocation=research-user"
+fi
+
+if ipa host-add $1 $EXTRA
 then
 # host-add worked, so it's a new host. tell the KDCs to update their iptables, so the host can connect
 # otherwise have to wait 10 min for cron job

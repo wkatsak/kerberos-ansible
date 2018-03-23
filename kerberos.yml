@@ -4,7 +4,7 @@
 # the script fails. But when you rerun it a start or restart is missed because
   # the thing that triggered it is already there.
 
-- hosts: testhosts dresden faculty research staff services ilab grad apps coredev special minimal localhost
+- hosts: testhosts dresden faculty research staff services ilab grad apps coredev special researchuser localhost
   become: true
   environment:
     PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"

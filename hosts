@@ -388,11 +388,15 @@ net_autofs = true
 # We don't interfere with sudo settings already on the system.
 # Password isn't used unless someone runs passwords.yml on the system.
 
-[minimal]
+#NOTE: if cluster=researchuser, enroll-host will put them in the hostgroup research-user
+# If you most hosts into or out of this cluster,
+# make sure you adjust research-user accordingly.
+
+[researchuser]
 markov.cs.rutgers.edu
 
-[minimal:vars]
-cluster = minimal
+[researchuser:vars]
+cluster = researchuser
 password = machineroom
 local_homedir = true
 net_autofs = true

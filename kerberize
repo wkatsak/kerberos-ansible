@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script is set up for Rutgers computer science.
+# I believe it can be fixed by looking for all occurences of rutgers.edu
+
 # kerberize a host. Mostly this does an ansible-pull of our normal ansible scripts
 # but for that to work need to
 # * install kerberos, ansible, and git [git is needed for ansible-pull]
@@ -53,9 +56,19 @@ echo
 echo Setting up a minimal Kerberos configuration...
 echo
 if test "$DISTRO" = "Ubuntu" ; then
-apt-get -qq install krb5-user
+if ! apt-get update || ! apt-get -qq install krb5-user krb5-pkinit; then
+echo -e "\n***************\n"
+echo "Sorry, apt-get has to work"
+echo
+exit 1
+fi
 elif test "$DISTRO" = "Centos" ; then
-yum install -q -y krb5-workstation
+if ! yum install -q -y krb5-workstation ; then
+echo -e "\n***************\n"
+echo "Sorry, yum has to work"
+echo
+exit 1
+fi
 else
 echo sorry, this script supports Ubuntu and Centos 7 only
 echo
@@ -83,10 +96,23 @@ cat > /etc/krb5.conf <<"EOF"
 
 EOF
 
+if ! curl -o /etc/krb5.kdc.pem http://services.cs.rutgers.edu/krb5.kdc.pem ; then
+echo -e "\n***************\n"
+echo "Unable to get http://services.cs.rutgers.edu/krb5.kdc.pem"
+echo
+exit 1
+fi
+
 if grep -i '^\s*GSSAPIAuthentication' /etc/ssh/ssh_config; then
 sed -i.old 's/^\s*GSSAPIAuthentication.*/GSSAPIAuthentication yes/gI' /etc/ssh/ssh_config
 else
 echo GSSAPIAuthentication yes >> /etc/ssh/ssh_config
+fi 
+
+if grep -i '^\s*GSSAPIDelegateCredentials' /etc/ssh/ssh_config; then
+sed -i.old 's/^\s*GSSAPIDelegateCredentials.*/GSSAPIDelegateCredentials yes/gI' /etc/ssh/ssh_config
+else
+echo GSSAPIDelegateCredentials yes >> /etc/ssh/ssh_config
 fi 
 
 echo -e "\n***************\n"
@@ -317,15 +343,21 @@ echo -e "\n***************\n"
 echo "NOTE: You may need to hit carriage return during ansible installation"
 echo
 
-apt-get -qq update
-apt-get -qq install software-properties-common
-apt-add-repository ppa:ansible/ansible
-apt-get -qq update
-apt-get -qq install ansible git
+if ! apt-get -qq update || ! apt-get -qq install software-properties-common || ! apt-add-repository ppa:ansible/ansible || ! apt-get -qq update || ! apt-get -qq install ansible git ; then
+echo -e "\n***************\n"
+echo "apt-get failed"
+echo
+exit 1
+fi
 
 elif test "$DISTRO" = "Centos" ; then
 
-yum -q -y install ansible git
+if ! yum -q -y install ansible git ; then
+echo -e "\n***************\n"
+echo "yum failed"
+echo
+exit 1
+fi
 
 fi
 
