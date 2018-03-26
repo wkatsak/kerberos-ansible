@@ -397,8 +397,21 @@ fi
 
 # now do the real work. 
 
-ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos-boot.yml
-ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml
+if ! ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos-boot.yml ; then
+echo -e "\n***************\n"
+echo "There are two steps to the final software installation. The first failed. We won't"
+echo "run the second step until the first one works."
+echo
+exit 1
+fi
+
+if ! ansible-pull -f -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml ; then
+echo -e "\n***************\n"
+echo "There final step in setup failed."
+echo
+exit 1
+fi
+
 
 
 echo -e "\n***************\n"
