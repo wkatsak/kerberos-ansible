@@ -14,7 +14,12 @@
 # * generate /etc/ansible/hosts for localhost with a setup based on the user's answers
 # * do kerberos-boot.yml and kerberos.yml
 
-DISTRO=`lsb_release -i -s`
+DISTRO=`grep '^NAME=' /etc/os-release`
+case "$DISTRO" in
+*Ubuntu* ) DISTRO="Ubuntu" ;;
+*CentOS* ) DISTRO="CentOS" ;;
+*) echo We only support Ubuntu and Centos; exit 1 ;;
+esac
 
 SERVER=aurora.cs.rutgers.edu
 
@@ -34,18 +39,14 @@ fi
 
 echo
 echo -e "\n***************\n"
-echo "This process will only be useful for users who login with their netid."
-echo "If you're already using netids in /etc/passwd, that's great. If you're"
-echo "going to get user information from our central server, that's OK too."
-echo "But if you're depending upon your /etc/passwd for users, only users"
-echo "whose username is their netid will be able to use Kerberos. Others will"
-echo "still be able to login."
-echo
-echo "In many cases you can edit /etc/passwd and change the usernames to the"
-echo "person's netid. If that's not possible, then in /etc/passwd"
-echo "after each entry for a human (things like root and mysql don't count),"
-echo "add a second entry that is identical except that it starts with the NetID."
-echo "You will need to login with the NetID, but the old usernames will continue to work."
+echo "Please verify the following:"
+echo "* Your computer must have a permanent hostname, registered in DNS."
+echo "* Your computer must have Python 2.6, 2.7, or 3.5+."
+echo "* For Ubuntu, your time must be synchronized by ntp or similar."
+echo "* You must have registered your computer in the Host Registration"
+echo "  section of https://services.cs.rutgers.edu/accounts"
+echo "In addition, the conversion won't be very useful unless your"
+echo "usernames are Univerity Netids."
 echo
 echo "Hit CR to continue."
 read foo
@@ -62,8 +63,8 @@ echo "Sorry, apt-get has to work"
 echo
 exit 1
 fi
-elif test "$DISTRO" = "Centos" ; then
-if ! yum install -q -y krb5-workstation ; then
+elif test "$DISTRO" = "CentOS" ; then
+if ! yum install -q -y krb5-workstation krb5-pkinit; then
 echo -e "\n***************\n"
 echo "Sorry, yum has to work"
 echo
@@ -99,6 +100,7 @@ EOF
 if ! curl -o /etc/krb5.kdc.pem http://services.cs.rutgers.edu/krb5.kdc.pem ; then
 echo -e "\n***************\n"
 echo "Unable to get http://services.cs.rutgers.edu/krb5.kdc.pem"
+echo "Is your networking properly set up?"
 echo
 exit 1
 fi
@@ -115,6 +117,17 @@ else
 echo GSSAPIDelegateCredentials yes >> /etc/ssh/ssh_config
 fi 
 
+KRB5CCNAME=/tmp/krb5cc_temp$$ kinit -n
+if ! test "$?" = "0" ; then
+echo -e "\n***************\n"
+echo "Unable to reach the Kerberos servers. Either there's a problem with"
+echo "networking (e.g. a firewall) or you haven't registered this computer."
+echo "Please check https://services.cs.rutgers.edu/accounts in the"
+echo "Host Registration section."
+echo
+exit 1
+fi
+
 echo -e "\n***************\n"
 echo "Please login with a CS username (NetID) and password."
 echo "The user need not exist on this system. However it must be a faculty"
@@ -126,8 +139,6 @@ echo
 echo -n "Username: "
 read USERNAME
 
-# in case user has one-time password need a cache for kinit's "armor"
-KRB5CCNAME=/tmp/krb5cc_temp$$ kinit -n
 if ! kinit -T /tmp/krb5cc_temp$$ "$USERNAME" ; then
 echo -e "\n***************\n"
 echo
@@ -350,7 +361,7 @@ echo
 exit 1
 fi
 
-elif test "$DISTRO" = "Centos" ; then
+elif test "$DISTRO" = "CentOS" ; then
 
 if ! yum -q -y install ansible git ; then
 echo -e "\n***************\n"
