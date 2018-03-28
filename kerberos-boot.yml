@@ -140,7 +140,7 @@
 # ipa-client-install recreates key table, so have to add nfs key if needed
    - name: add nfs key if necessary
      when: has_ipaclient and nfsserver is defined and nfsserver == 'true'
-     shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
+     shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
 
