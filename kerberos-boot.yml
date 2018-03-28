@@ -60,25 +60,6 @@
    - name: nfs server package if needed
      when: nfsserver is defined and nfsserver == 'true' and nfs_server_package is defined
      package: name="{{ nfs_server_package }}" state=present
-   - name: see if nfs service key in key table
-     when: nfsserver is defined and nfsserver == 'true'
-     shell: klist -k -t /etc/krb5.keytab | grep nfs/
-     register: checknfskey
-     changed_when: "'nfs/' not in checknfskey.stdout"
-# if it's not there the grep will fail     
-     failed_when: false
-   - name: create nfs service key if needed
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey.stdout
-     local_action: command "{{ playbook_dir }}/kerberos-files/scripts/make-nfs-principal" {{ ansible_fqdn }}
-     become: false
-   - name: send nfs key to remote
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey.stdout
-     copy: src=/tmp/{{ ansible_fqdn }}-nfs.kt dest=/etc/krb5.nfskey owner=root mode=0600
-   - name: add nfskey to keytab and delete
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey.stdout
-     script: "{{ playbook_dir }}/kerberos-files/scripts/add-nfs-principal"
-   - name: remove local copy of key table
-     local_action: file path=/tmp/{{ ansible_fqdn }}-nfs.kt state=absent
 
 # set up chrony. Time needs to be right for other things to work
    - name: disable ntp if there
@@ -137,16 +118,16 @@
      command: ipa-client-install -U --ca-cert-file=/etc/krb5.i2chain.pem --no-ntp --no-sudo -k /etc/krb5.keytab.hold --domain={{ domain }}
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
-# ipa-client-install recreates key table, so have to add nfs key if needed
+# add nfs service key if needed. do after ipa-client-install as that resets key table
    - name: see if nfs service key in key table
-     when: has_ipaclient and nfsserver is defined and nfsserver == 'true'
+     when: nfsserver is defined and nfsserver == 'true'
      shell: klist -k -t /etc/krb5.keytab | grep nfs/
      register: checknfskey2
      changed_when: "'nfs/' not in checknfskey2.stdout"
 # if it's not there the grep will fail     
      failed_when: false
    - name: add nfs service key if needed
-     when: has_ipaclient and nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout
      shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
 
 # without ipa client
