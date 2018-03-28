@@ -137,6 +137,13 @@
      command: ipa-client-install -U --ca-cert-file=/etc/krb5.i2chain.pem --no-ntp --no-sudo -k /etc/krb5.keytab.hold --domain={{ domain }}
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
+# ipa-client-install recreates key table, so have to add nfs key if needed
+   - name: add nfs key if necessary
+     when: has_ipaclient and nfsserver is defined and nfsserver == 'true'
+     shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
+     args:
+       creates: /var/lib/ipa-client/sysrestore/sysrestore.index
+
 
 # without ipa client
    - name: krb5.conf
