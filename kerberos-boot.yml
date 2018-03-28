@@ -138,12 +138,16 @@
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
 # ipa-client-install recreates key table, so have to add nfs key if needed
-   - name: add nfs key if necessary
+   - name: see if nfs service key in key table
      when: has_ipaclient and nfsserver is defined and nfsserver == 'true'
+     shell: klist -k -t /etc/krb5.keytab | grep nfs/
+     register: checknfskey2
+     changed_when: "'nfs/' not in checknfskey2.stdout"
+# if it's not there the grep will fail     
+     failed_when: false
+   - name: add nfs service key if needed
+     when: has_ipaclient and nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout
      shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
-     args:
-       creates: /var/lib/ipa-client/sysrestore/sysrestore.index
-
 
 # without ipa client
    - name: krb5.conf
