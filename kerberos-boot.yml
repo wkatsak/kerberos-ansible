@@ -24,6 +24,11 @@
 # so all local_action steps set become: no
   tasks:
 
+# ansible_connection will change for local operations. We need to know
+# about the main connection
+   - name: set islocal 
+     set_fact: islocal="{{ansible_connection == 'local'}}"
+
    - name: load config for distribution
      include_vars: "os-vars/{{ ansible_distribution }}.{{ansible_distribution_major_version}}.yml"
 
@@ -134,19 +139,19 @@
 # key. We only need this is ipa-client-install has lost it. So it will only be done on systems that
 # actually have ipa-getkeytab.
    - name: add nfs service key if needed, pull mode
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and ansible_local and has_ipaclient
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and islocal and has_ipaclient
      shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
 
 # add NFS key push mode. this should always work
    - name: add nfs service key if needed, push mode
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not ansible_local
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not islocal
      local_action: command "{{ playbook_dir }}/kerberos-files/scripts/make-nfs-principal" {{ ansible_fqdn }}
      become: false
    - name: send nfs key to remote
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not ansible_local
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not islocal
      copy: src=/tmp/{{ ansible_fqdn }}-nfs.kt dest=/etc/krb5.nfskey owner=root mode=0600
    - name: add nfskey to keytab and delete
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not ansible_local
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and not islocal
      script: "{{ playbook_dir }}/kerberos-files/scripts/add-nfs-principal"
    - name: remove local copy of key table
      local_action: file path=/tmp/{{ ansible_fqdn }}-nfs.kt state=absent
