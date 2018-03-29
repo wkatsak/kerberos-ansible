@@ -5,11 +5,9 @@
 
 # kerberize a host. Mostly this does an ansible-pull of our normal ansible scripts
 # but for that to work need to
-# * install kerberos, ansible, and git [git is needed for ansible-pull]
+# * ansible, and git [git is needed for ansible-pull]
 #   With Ubuntu we need ansible's special repo; an old ansisible won't do
-# * set up a minimal kerberos environment, so we can do kerberized ssh
-# * ssh commands to a server that's already set up to generate a keytable
-# * install the key table
+# * get key table from web service
 # * ask the user for info on who should login
 # * generate /etc/ansible/hosts for localhost with a setup based on the user's answers
 # * do kerberos-boot.yml and kerberos.yml
@@ -21,13 +19,10 @@ case "$DISTRO" in
 *) echo We only support Ubuntu and Centos; exit 1 ;;
 esac
 
-SERVER=aurora.cs.rutgers.edu
+SERVER=services.cs.rutgers.edu
 
-# start by testing a bunch of stuff. For likely problem situation, try to
-# give the user a good error messasge rather than just failing later.
-# Some of the checks can't be done until we have a kerberos ticket
-
-
+# We'll do a more careful check of hostname in the web service
+# But check for the obvious now.
 if ! hostname | grep '\.' ; then
 echo -e "\n***************\n"
 echo Your hostname must be a fully-qualified name, e.g. foo.cs.rutgers.edu,
@@ -43,132 +38,44 @@ echo "Please verify the following:"
 echo "* Your computer must have a permanent hostname, registered in DNS."
 echo "* Your computer must have Python 2.6, 2.7, or 3.5+."
 echo "* For Ubuntu, your time must be synchronized by ntp or similar."
-echo "* You must have registered your computer in the Host Registration"
-echo "  section of https://services.cs.rutgers.edu/accounts"
 echo "In addition, the conversion won't be very useful unless your"
 echo "usernames are Univerity Netids."
 echo
 echo "Hit CR to continue."
 read foo
 
-# need to be able to ssh commands to aurora
-
-echo
-echo Setting up a minimal Kerberos configuration...
-echo
-if test "$DISTRO" = "Ubuntu" ; then
-if ! apt-get update || ! apt-get -qq install krb5-user krb5-pkinit; then
-echo -e "\n***************\n"
-echo "Sorry, apt-get has to work"
-echo
-exit 1
-fi
-elif test "$DISTRO" = "CentOS" ; then
-if ! yum install -q -y krb5-workstation krb5-pkinit; then
-echo -e "\n***************\n"
-echo "Sorry, yum has to work"
-echo
-exit 1
-fi
-else
-echo sorry, this script supports Ubuntu and Centos 7 only
-echo
-exit 1
-fi
-
-cat > /etc/krb5.conf <<"EOF"
-[libdefaults]
-  default_realm = CS.RUTGERS.EDU
-  dns_lookup_realm = false
-  dns_lookup_kdc = true
-  rdns = false
-  noaddresses = false
-  forwardable = true
-  default_ccache_name = /tmp/krb5cc_%{uid}
-
-[realms]
-  CS.RUTGERS.EDU = {
-    admin_server = krb1.cs.rutgers.edu:749
-    admin_server = krb2.cs.rutgers.edu:749
-    admin_server = krb4.cs.rutgers.edu:749
-    default_domain = cs.rutgers.edu
-    pkinit_anchors = FILE:/etc/krb5.kdc.pem
-  }
-
-EOF
-
-if ! curl -o /etc/krb5.kdc.pem http://services.cs.rutgers.edu/krb5.kdc.pem ; then
-echo -e "\n***************\n"
-echo "Unable to get http://services.cs.rutgers.edu/krb5.kdc.pem"
-echo "Is your networking properly set up?"
-echo
-exit 1
-fi
-
-if grep -i '^\s*GSSAPIAuthentication' /etc/ssh/ssh_config; then
-sed -i.old 's/^\s*GSSAPIAuthentication.*/GSSAPIAuthentication yes/gI' /etc/ssh/ssh_config
-else
-echo GSSAPIAuthentication yes >> /etc/ssh/ssh_config
-fi 
-
-if grep -i '^\s*GSSAPIDelegateCredentials' /etc/ssh/ssh_config; then
-sed -i.old 's/^\s*GSSAPIDelegateCredentials.*/GSSAPIDelegateCredentials yes/gI' /etc/ssh/ssh_config
-else
-echo GSSAPIDelegateCredentials yes >> /etc/ssh/ssh_config
-fi 
-
-KRB5CCNAME=/tmp/krb5cc_temp$$ kinit -n
-if ! test "$?" = "0" ; then
-echo -e "\n***************\n"
-echo "Unable to reach the Kerberos servers. Either there's a problem with"
-echo "networking (e.g. a firewall) or you haven't registered this computer."
-echo "Please check https://services.cs.rutgers.edu/accounts in the"
-echo "Host Registration section."
-echo
-exit 1
-fi
-
 echo -e "\n***************\n"
 echo "Please login with a CS username (NetID) and password."
 echo "The user need not exist on this system. However it must be a faculty"
 echo "or someone else authorized to enroll a host in our Kerberos system."
-echo "It must be authorized to login to the research cluster."
 echo "If you aren't a faculty member, and you aren't sure you've been authorized,"
 echo "please contact help@cs.rutgers.edu"
 echo
 echo -n "Username: "
 read USERNAME
 
-if ! kinit -T /tmp/krb5cc_temp$$ "$USERNAME" ; then
+# prived local port to show server we are root
+if ! curl --local-port 1-1023 -u "$USERNAME" -o /tmp/keytable https://$SERVER/accounts/enrollhosts?host=`hostname`; then
 echo -e "\n***************\n"
-echo
-echo "You must be able to login for this script to work."
+echo "Unable to get key table for this host."
 echo
 exit 1
-fi
-kdestroy -c /tmp/krb5cc_temp$$
-
-# see if ssh works, so we can give a good error message
-if ! ssh $USERNAME@$SERVER echo Can login to $SERVER >/dev/null 2>&1; then
-echo -e "\n***************\n"
+# key tables begin with 005 then a version number, which is 2 in our case
+elif grep ^$'\05'$'\02' /tmp/keytable; then
+mv /tmp/keytable /etc/krb5.keytab
+chmod 600 /etc/krb5.keytab
+echo "Retrieved apparently valid key table"
 echo
-echo "You must be able to login to $SERVER for this script to work."
-echo
-exit 1
-fi
-
-# now see if user has the right permission
-if ! (ssh $USERNAME@$SERVER ipa user-show $USERNAME | grep "Rutgers user add host") >/dev/null 2>&1 ; then
-echo -e "\n***************\n"
-echo
-echo "You aren't authorized to register hosts. All faculty are authorized."
-echo "If you aren't a faculty member, please ask the faculty member responsible"
-echo "for this system to request help@cs.rutgers.edu to authorized you."
+elif grep "^Error:" /tmp/keytable ; then
+# grep will have printed the error message
+# in principle anything else is a valid key table
 echo
 exit 1
+else
+echo -e "\n***************\n"
+echo "Unable to retrieve key table. Likely cause: bad user name or password."
+exit 1
 fi
-
-# things will probably work. so get info from the user
 
 echo -e "\n***************\n"
 echo "This script will change the way passwords are checked. You will now use"
@@ -182,6 +89,7 @@ echo
 echo "The second option takes a few minutes to set up, but it's better if you"
 echo "have several computers. With a group, you can add and remove users in one place,"
 echo "rather than having to update /etc/passwd on each system."
+echo
 
 while true ; do
 echo 
@@ -204,29 +112,6 @@ if test "$ANSWER" = "2" ; then
   echo
   echo "Enter group name"
   read GROUP
-  if ! ssh $USERNAME@$SERVER ipa group-show "$GROUP" > /dev/null 2>&1 ; then
-    echo -e "\n***************\n"
-    echo "The group $GROUP does not appear to exist. Either that or you can't"
-    echo "login to $SERVER. Would you like to create the group? (This will only work"
-    echo "if you can login to $SERVER."
-    echo
-    echo "Type \"yes\" to create it, anything else not to."
-    read OK
-    if test "$OK" = "yes" ; then
-      if ssh $USERNAME@$SERVER ipa group-add "$GROUP" --nonposix --addattr=businesscategory=login ; then
-      ssh $USERNAME@$SERVER ipa group-add-member "$GROUP" --users=$USERNAME
-      else
-      echo -e "\n***************\n"
-      echo "The attempt to add $GROUP failed. Most likely causes:"
-      echo " * You can't login to $SERVER."
-      echo " * You aren't authorized to create groups. Faculty are always authorzed."
-      echo "   They can request others to be."
-      echo
-      echo "We will continue with the setup, but you should make sure that the group gets created."
-      echo
-      fi
-    fi
-  fi
 fi
 
 while true ; do
@@ -239,114 +124,6 @@ if test "$LCSR" = "yes" -o "$LCSR" = "no" ; then
    break;
 fi
 done
-
-# have all the info we need. Now start doing stuff
-# First step is creating the key table
-# here's a script. It gets sent to aurora to do the work
-
-cat > makekt <<"EOF"
-#!/bin/sh
-
-PATH=/usr/bin:/bin:/usr/sbin:/sbin
-export PATH
-
-rm -f /tmp/`whoami`."$1".kt
-
-# the nshostlocation=research-user triggers an automember that adds it to the research netgroup
-if ! ipa host-add "$1" --addattr=nshostlocation=research-user >/tmp/$$ 2>&1 ; then
-if ! grep "already exists" /tmp/$$ ; then
-cat /tmp/$$
-echo
-echo "The most likely cause is that you aren't authorized to register hosts."
-echo Faculty are authorized. They can request for others to be.
-echo Please contact the faculty member who is responsible for this system
-echo and ask them to request help@cs.rutgers.edu to authorize you.
-echo
-exit 1
-fi
-fi
-
-# to get a key table, the user must be manager for the host.
-# I have an ACL that lets the creator add the managedby attribute
-
-# don't try adding user as manager if he's already there. That allows
-# admins to add a managedby attribute to let someone else set up a host
-# that already exists. 
-if ! (ldapsearch -Y GSSAPI fqdn="$1" managedby | grep uid=`whoami`) >/dev/null 2>&1 ; then
-if ! ipa host-mod "$1" --addattr=managedby=uid=`whoami`,cn=users,cn=accounts,dc=cs,dc=rutgers,dc=edu >/tmp/$$ 2>&1; then
-if ! grep "no modifications to be performed" /tmp/$$ ; then
-cat /tmp/$$
-echo
-echo The most likely cause is that this host was already registered by someone else.
-echo Please contact help@cs.rutgers.edu.
-echo
-exit 1
-fi
-fi
-fi
-
-# beyond this point the most likely causes of problems have already
-# been checked. I don't see how they could fail.
-
-if ! ipa-getkeytab -p host/"$1" -k /tmp/`whoami`."$1".kt ; then
-exit 1
-fi
-
-sleep 2
-
-# Have the main key table. Add nfs principal to it
-# to get the nfs key, have to kinit as the host.
-# With IPA the host has rights to get a keytable for nfs
-
-KRB5CCNAME=/tmp/krb5cc_host$$
-if ! kinit -k -t /tmp/`whoami`."$1".kt host/"$1" ; then
-exit 1
-fi
-
-if ! ipa service-add nfs/"$1"  >/tmp/$$ 2>&1 ; then
-if ! grep "already exists" /tmp/$$ ; then
-cat /tmp/$$
-kdestroy
-exit 1
-fi
-fi
-
-if ! ipa-getkeytab -p nfs/"$1" -k /tmp/`whoami`."$1".kt ; then
-kdestroy
-exit 1
-fi
-
-kdestroy
-exit 0
-
-EOF
-
-# send the script to aurora
-
-if ! scp makekt $USERNAME@$SERVER:makekt ; then
-echo -e "\n***************\n"
-echo "Unable to copy file to $SERVER. Make sure you can login to $SERVER."
-echo
-exit 1
-fi
-
-# run the script to create key table on aurora
-# makekt should print an explanation if there's an error
-
-if ! ssh $USERNAME@$SERVER sh makekt `hostname`; then
-echo "Unable to create key table for this host."
-exit 1
-fi
-
-# get the key table 
-if ! scp $USERNAME@$SERVER:/tmp/$USERNAME.`hostname`.kt /etc/krb5.keytab ; then
-echo -e "\n***************\n"
-echo "Unable to retrieve key table for this host from $SERVER."
-exit 1
-fi
-
-# don't leave it lying around on aurora
-ssh $USERNAME@$SERVER rm /tmp/$USERNAME.`hostname`.kt
 
 if test "$DISTRO" = "Ubuntu" ; then
 
@@ -422,7 +199,6 @@ echo "There final step in setup failed."
 echo
 exit 1
 fi
-
 
 
 echo -e "\n***************\n"
