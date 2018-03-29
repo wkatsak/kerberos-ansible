@@ -124,11 +124,32 @@
      shell: klist -k -t /etc/krb5.keytab | grep nfs/
      register: checknfskey2
      changed_when: "'nfs/' not in checknfskey2.stdout"
+# 
 # if it's not there the grep will fail     
      failed_when: false
-   - name: add nfs service key if needed
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout
+
+# need to add NFS key
+# In pull mode. have to do it on the target host. This is the best we can do without real absurdity.
+# generally pull mode means the sysadmin is initiating it. The script for doing that always adds an NFS
+# key. We only need this is ipa-client-install has lost it. So it will only be done on systems that
+# actually have ipa-getkeytab.
+   - name: add nfs service key if needed, pull mode
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and {{ ansible_connection }} == 'local' and has_ipaclient
      shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
+
+# add NFS key push mode. this should always work
+   - name: add nfs service key if needed, push mode
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and {{ ansible_connection }} != 'local' 
+     local_action: command "{{ playbook_dir }}/kerberos-files/scripts/make-nfs-principal" {{ ansible_fqdn }}
+     become: false
+   - name: send nfs key to remote
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and {{ ansible_connection }} != 'local' 
+     copy: src=/tmp/{{ ansible_fqdn }}-nfs.kt dest=/etc/krb5.nfskey owner=root mode=0600
+   - name: add nfskey to keytab and delete
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and {{ ansible_connection }} != 'local' 
+     script: "{{ playbook_dir }}/kerberos-files/scripts/add-nfs-principal"
+   - name: remove local copy of key table
+     local_action: file path=/tmp/{{ ansible_fqdn }}-nfs.kt state=absent
 
 # without ipa client
    - name: krb5.conf
