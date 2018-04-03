@@ -55,6 +55,23 @@
      template: src="{{ playbook_dir }}/kerberos-files/etc/pam.d/{{ item }}" dest=/etc/pam.d/{{ item }} mode=0644 owner=root
      with_items: ['password-auth-ac', 'system-auth-ac']
 
+# on Centos pam needs an selinux policy
+   - name: see if selinux is on
+     command: getenforce
+     register: enforcing
+     failed_when: false
+     changed_when: false
+
+   - name: set policy if selinux
+     when: "'Enforcing' in enforcing.stdout"
+     block:
+       - file: path=/usr/local/etc state=directory mode=755 owner=root
+       - copy: src="{{ playbook_dir }}/kerberos-files/usr/local/etc/kerbsemanage.pp" dest=/usr/local/etc/kerbsemanage.pp mode=600 owner=root
+         notify:
+         - load selinux
+
+   - meta: flush_handlers
+
    - name: /usr/libexec/setlimits.sh if needed
      when: setlimits is defined
      copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/{{ setlimits }}" dest=/usr/libexec/setlimits.sh owner=root mode=755
@@ -213,3 +230,6 @@
       service: name=gssproxy state=restarted
     - name: restart autofs
       service: name=autofs state=restarted
+    - name: load selinux
+      command: semodule -i /usr/local/etc/kerbsemanage.pp
+

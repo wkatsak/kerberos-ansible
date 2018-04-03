@@ -9,6 +9,7 @@ LOGIN=`getent passwd "$PAM_USER" | cut -d: -f3`
 # must read the value to commit them
 
 if [ "${LOGIN}" -ge 1000 ]; then
+  if ! (groups "$PAM_USER" | grep '\bno-mem-limit\b' >/dev/null) ; then
    # limit is 1/2 of phys mem. use right shift so it stays integer
    LIMIT=`vmstat -s | grep "total memory" | awk '{print rshift($1,1) "K"}'`
    # need to do this to create the slice and turn on memory accounting
@@ -18,6 +19,7 @@ if [ "${LOGIN}" -ge 1000 ]; then
    cat /sys/fs/cgroup/memory/user.slice/user-${LOGIN}.slice/memory.limit_in_bytes > /dev/null
    cat /sys/fs/cgroup/memory/user.slice/user-${LOGIN}.slice/memory.memsw.limit_in_bytes > /dev/null
    systemctl set-property --runtime "user-${LOGIN}.slice" CPUShares=100
+  fi
 fi
 
 exit 0

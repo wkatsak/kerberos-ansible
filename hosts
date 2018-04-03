@@ -22,7 +22,7 @@ c217-3.cs.rutgers.edu nfsserver=true
 c217-4.cs.rutgers.edu nfsserver=true net_autofs=true
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
-
+geneva.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 
 # centos 7
 tall2.rutgers.edu
@@ -348,6 +348,23 @@ password = desktop
 limits = 40-ilab.conf
 setlimits = ilab-setlimits.sh
 killjob = killjob-ilab.sh
+
+# 32 GB machines, but not the GPU systems
+[ilab-big]
+atlas.cs.rutgers.edu
+c211-i2.cs.rutgers.edu
+c211-i3.cs.rutgers.edu
+cd.cs.rutgers.edu
+cp.cs.rutgers.edu
+grep.cs.rutgers.edu
+kill.cs.rutgers.edu
+less.cs.rutgers.edu
+ls.cs.rutgers.edu
+man.cs.rutgers.edu
+pwd.cs.rutgers.edu
+rm.cs.rutgers.edu
+top.cs.rutgers.edu
+vi.cs.rutgers.edu
 
 [coredev]
 c215-d1.cs.rutgers.edu
