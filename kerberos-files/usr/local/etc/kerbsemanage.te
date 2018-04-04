@@ -1,0 +1,21 @@
+
+module kerbsemanage 1.0;
+
+require {
+	type xdm_var_run_t;
+	type sshd_t;
+	type var_run_t;
+	class file { create open write };
+	class dir { add_name create write };
+}
+
+#============= sshd_t ==============
+
+#!!!! WARNING 'sshd_t' is not allowed to write or create to var_run_t.  Change the label to sshd_var_run_t.
+allow sshd_t var_run_t:dir create;
+
+#!!!! This avc is allowed in the current policy
+allow sshd_t xdm_var_run_t:dir { add_name write };
+
+#!!!! This avc is allowed in the current policy
+allow sshd_t xdm_var_run_t:file { create open write };
