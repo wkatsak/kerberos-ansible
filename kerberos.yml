@@ -67,8 +67,8 @@
    - name: install policy if selinux, dir
      when: enforcing.stdout is defined and 'Enforcing' in enforcing.stdout
      block: 
-       - file: path=/usr/local/etc state=directory mode=755 owner=root
-       - copy: src="{{ playbook_dir }}/kerberos-files/usr/local/etc/kerbsemanage.pp" dest=/usr/local/etc/kerbsemanage.pp mode=600 owner=root
+       - file: path=/usr/local/etc/selinux state=directory mode=755 owner=root
+       - copy: src="{{ playbook_dir }}/kerberos-files/usr/local/etc/selinux/" dest=/usr/local/etc/selinux/ mode=600 owner=root
          notify:
           - load selinux
 
@@ -209,11 +209,10 @@
 
    - name: comment out /net in auto.master if present
      when: net_autofs is defined and net_autofs
-     lineinfile:
+     replace:
        path: /etc/auto.master
-       regexp: '^/net\s'
-       line: '#/net    -hosts'
-       state: present
+       regexp: '^(\s*)/net(.*)$'
+       replace: '#\1/net\2'
 
    - name: autofs /net, directory
      when: net_autofs is defined and net_autofs

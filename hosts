@@ -22,7 +22,7 @@ c217-3.cs.rutgers.edu nfsserver=true
 c217-4.cs.rutgers.edu nfsserver=true net_autofs=true
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
-geneva.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+geneva.cs.rutgers.edu nfsserver=true local_homedir=true idfiles=true net_autofs=true domain=cs.rutgers.edu
 c217-5.lcsr.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 
 # centos 7
