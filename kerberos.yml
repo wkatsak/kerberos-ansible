@@ -43,6 +43,18 @@
          - "--exclude=*~"
      register: syncresult2
 
+# because rsync is done locally, it doesn't log the results on the target
+# log them now
+   - name: log results of rsync
+     when: syncresult1.changed or syncresult2.changed
+     command: logger -p user.info -t python
+     args:
+       stdin: "ansible-synchronize Changes done: {{ syncresult1.msg|default('') }}{{ syncresult2.msg|default('') }}"
+
+# has to be done separately because of setuid bit
+   - name: install kgetcred
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/bin/kgetcred" dest=/usr/bin/kgetcred owner=root mode=04755
+
    - name: temp hack for apps
      when: cluster is defined and cluster == 'apps' and ansible_distribution_major_version == '7'
      copy: src="{{ playbook_dir }}/kerberos-files/password-auth-ac-apps" dest=/etc/pam.d/password-auth-ac
@@ -102,15 +114,6 @@
      when: killjob is not defined
      file: path={{ item }} state=absent
      with_items: ['/etc/cron.d/killjob', '/usr/libexec/killjob.sh']
-
-# because rsync is done locally, it doesn't log the results on the target
-# log them now
-   - name: log results of rsync
-     when: syncresult1.changed or syncresult2.changed
-     command: logger -p user.info -t python
-     args:
-       stdin: "ansible-synchronize Changes done: {{ syncresult1.msg|default('') }}{{ syncresult2.msg|default('') }}"
-
 
 # install pkinit if possible
    - name: install pkinit
