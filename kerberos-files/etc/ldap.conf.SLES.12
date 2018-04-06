@@ -1,0 +1,19 @@
+# this is the default file, with comments removed
+# only host, base, and bind is non-default
+# Don't seem to be able to get this to do service lookup
+#  so have to hardcode hosts. If we change them this will
+#  have to change. Not good.
+host krb1.cs.rutgers.edu krb2.cs.rutgers.edu krb4.cs.rutgers.edu
+base cn=accounts,dc=cs,dc=rutgers,dc=edu
+# unprived user. need to authenticate as something to get groups                                                                 
+binddn uid=ldap.admin,cn=users,cn=accounts,dc=cs,dc=rutgers,dc=edu
+bindpw abcde12345!
+bind_policy soft
+pam_lookup_policy yes
+pam_password exop
+nss_initgroups_ignoreusers root,ldap
+nss_schema rfc2307bis
+nss_map_attribute uniqueMember member
+ssl start_tls
+ssl on
+

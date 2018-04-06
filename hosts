@@ -17,9 +17,9 @@ domain = cs.rutgers.edu
 [testhosts]
 # ubuntu 14
 falcon.cs.rutgers.edu
-c217-3.cs.rutgers.edu nfsserver=true
+c217-3.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # ubuntu 16
-c217-4.cs.rutgers.edu nfsserver=true net_autofs=true
+c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
 geneva.cs.rutgers.edu nfsserver=true local_homedir=true idfiles=true net_autofs=true domain=cs.rutgers.edu
@@ -28,7 +28,7 @@ c217-5.lcsr.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmin
 # centos 7
 tall2.rutgers.edu
 # SLES 12
-chipa1.sas.rutgers.edu groupsuffix=staff
+chipa1.sas.rutgers.edu idfiles=true nfsserver=true
 
 # CLUSTERS
 

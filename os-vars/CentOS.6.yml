@@ -43,4 +43,6 @@ nfs_server_name: nfs-kernel-server
 need_svcgssd_in_nks: no
 boot_packages: ipa-client,krb5-workstation,chrony
 pkinit_package: krb5-pkinit
+ldap_packages: nss-pam-ldapd,nscd
+nslcd_service: nslcd
 

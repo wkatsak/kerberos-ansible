@@ -32,5 +32,6 @@ need_svcgssd_in_nks: yes
 nfs_server_package: nfs-kernel-server
 boot_packages: krb5-user,sssd,nfs-common,tcsh,freeipa-client,freeipa-admintools
 pkinit_package: krb5-pkinit
+nslcd_service: nslcd
 
 

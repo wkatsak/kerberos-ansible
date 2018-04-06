@@ -152,6 +152,17 @@
      - restart sssd
    - meta: flush_handlers
 
+# for idfiles=true, sssd has to get id from /etc/passwd. So we need to add nslcd to decode groups
+   - name: if idfiles, install nss_ldap packages
+     when: idfiles is defined and idfiles
+     package: name="{{ ldap_packages }}" state=installed
+
+   - name: if idfiles, configure nss_ldap
+     when: idfiles is defined and idfiles
+     copy: src="{{ playbook_dir }}/kerberos-files{{ ldap_src|default('/etc/nslcd.conf') }}" dest="{{ ldap_dest|default('/etc/nslcd.conf') }}"
+     notify:
+     - restart nslcd     
+
 # nsswitch.conf is slightly different for ubuntu
    - name: nsswitch.conf
      template: src="{{ playbook_dir }}/kerberos-files/etc/nsswitch.conf" dest=/etc/nsswitch.conf owner=root mode=0644
@@ -244,4 +255,9 @@
       service: name=autofs state=restarted
     - name: load selinux
       command: semodule -i /usr/local/etc/kerbsemanage.pp
+    - name: restart nslcd
+      when: nslcd_service is defined
+      service: name={{ nslcd_service }} state=restarted enabled=yes
+
+
 
