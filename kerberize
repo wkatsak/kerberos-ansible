@@ -39,11 +39,26 @@ echo "* Your computer must have a permanent hostname, registered in DNS."
 echo "* Your computer must have Python 2.6, 2.7, or 3.5+."
 echo "* For Ubuntu, your time must be synchronized by ntp or similar."
 echo "In addition, the conversion won't be very useful unless your"
-echo "usernames are Univerity Netids."
+echo "usernames are Univerity Netids, although that can be fixed later."
 echo
 echo "Hit CR to continue."
 read foo
 
+# see if we have a good kerberos keytable. If not, get a new one
+# we check that it matches the hostname and that you can actually kinit with it
+KTOK="false"
+if (which klist && which kinit) >/dev/null 2>&1 ; then
+  if  (klist -k -t /etc/krb5.keytab | grep host/`hostname`) > /dev/null 2>&1 ; then
+     KRB5CCNAME=/tmp/krb5cc_$$
+     if (kinit -k -t /etc/krb5.keytab host/`hostname`) > /dev/null 2>&1 ; then
+        KTOK="true"
+     fi
+     kdestroy
+  fi
+fi
+
+# if keytable isn't valid, get a new one
+if ! $KTOK ; then
 echo -e "\n***************\n"
 echo "Please login with a CS username (NetID) and password."
 echo "The user need not exist on this system. However it must be a faculty"
@@ -76,54 +91,70 @@ echo -e "\n***************\n"
 echo "Unable to retrieve key table. Likely cause: bad user name or password."
 exit 1
 fi
+fi
+#end of if kerberos ok
 
 echo -e "\n***************\n"
-echo "This script will change the way passwords are checked. You will now use"
-echo "your Computer Science password. (The old passwords will still work, but"
-echo "if you use them you may not be able to access your files.)"
+echo "Do you want to be get user information from our central server?"
+echo "The easiest answer is no. If you say no, information on users and"
+echo "groups will continue to come from /etc/passwd and /etc/group, although"
+echo "only users whose usernames are the same as their NetID will be able to"
+echo "use Kerberos features. "
 echo 
-echo "There are two choices for who can login:"
-echo " 1) Just people listed in /etc/passwd."
-echo " 2) just people in a specific group."
+echo "If you answer yes, information on users and groups will come from the CS"
+echo "server. Use this for new systems, and if you have more than one computer"
+echo "and want to maintain information in one place rather than having"
+echo "separate /etc/passwd files on each system. If you have existing users,"
+echo "and your UIDs (user numbers) aren't the same as on our central systems,"
+echo "you'll have some adjustments to make."
 echo
-echo "The second option takes a few minutes to set up, but it's better if you"
-echo "have several computers. With a group, you can add and remove users in one place,"
-echo "rather than having to update /etc/passwd on each system."
+echo "You can answer no initially, and then change your answer after you've"
+echo "fixed your users to be consitent with the central systems."
 echo
+echo "Do you want to be get user information from our central server?"
 
 while true ; do
-echo 
-echo "Who do you want to be able to login? Enter 1 or 2"
-read ANSWER
-if test "$ANSWER" = "1" -o "$ANSWER" = "2" ; then
+read USEIPA
+if test "$USEIPA" = "no" -o "$USEIPA" = "yes" ; then
    break;
 fi
-echo 
-echo "Please answer 1 if you want only people in /etc/passwd to be able to"
-echo "login, or 2 if you want members of a specified group to be able to login."
+echo
+echo "Please answer yes or no"
 done
 
-if test "$ANSWER" = "2" ; then
+if test "$USEIPA" = "yes" ; then
   echo -e "\n***************\n"
-  echo "Please enter the group name. The group must be registered in the computer"
-  echo "science server. If you don't have a group, go to"
-  echo "https://services.cs.rutgers.edu/accounts and user the group screen to create"
-  echo "a group. Please check the box saying that it is a Guest group."
+  echo "You have asked for user information to come from our central server."
+  echo "Since you probably don't want everyone in our database to be able to"
+  echo "login, you need to specify the name of a group. Any user that is"
+  echo "a member of the group will be able to login. You can create and update"
+  echo "the group using the web UI at https://services.cs.rutgers.edu/accounts"
+  echo 
+  echo "Anyone listed in /etc/passwd will also be able to login, though if the"
+  echo "username and UID in /etc/passwd doesn't agree with what's in our"
+  echo "database they probably won't be able to use Kerberos."
   echo
+
+  while true ; do
   echo "Enter group name"
   read GROUP
-fi
+  if echo "$GROUP" | egrep '^[a-z][-0-9_a-z]*$' >/dev/null; then
+  break
+  fi
+  echo "Group names should use lowercase, digits, _, -, and begin with a letter"
+  done
 
-while true ; do
-echo -e "\n***************\n"
-echo "Do you want all LCSR systems staff to be able to login to this system?"
-echo
-echo -n "Please type \"yes\" or \"no\": "
-read LCSR
-if test "$LCSR" = "yes" -o "$LCSR" = "no" ; then
-   break;
+  while true ; do
+  echo -e "\n***************\n"
+  echo "Do you want all LCSR systems staff to be able to login to this system?"
+  echo
+  echo -n "Please type \"yes\" or \"no\": "
+  read LCSR
+  if test "$LCSR" = "yes" -o "$LCSR" = "no" ; then
+     break;
+  fi
+  done
 fi
-done
 
 if test "$DISTRO" = "Ubuntu" ; then
 
@@ -154,33 +185,24 @@ fi
 
 cat > /etc/ansible/hosts <<EOF
 # This should have one line beginning with "localhost." The only thing you are likely to 
-# change is the grouplist and sudogroups options. Remove them if you want only users in
-# /etc/passwd. Otherwise grouplist should have the group whose members you want to be
-# able to login. Also include coresysadmins if you want LCSR systems staff to be able
-# to login. If you define grouplist, also include sudogroups=slide (or everyone in the
-# groups will be able to sudo without a password).
+# change are the specifications of who can login.
 #
-# Here's an example that includes both:
-#   localhost nfsserver=true local_homedir=true grouplist=coresysadmins,login-research sudogroups=slide net_autofs=true domain=cs.rutgers.edu
-# To use /etc/passwd for normal users but still allow LCSR system staff to login use
-#   localhost nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
-# To use /etc/passwd and not allow LCSR system staff use
-#   localhost nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu
+# Here's an example of a system where user info comes from /etc/passwd
+#   localhost nfsserver=true local_homedir=true idfiles=true net_autofs=true domain=cs.rutgers.edu
+# Here's an example of a system where user info comes from the LCSR database, 
+# and members of mygroup can login. Don't leave out the sudogroups, or anyone will be able to sudo
+#   localhost nfsserver=true local_homedir=true grouplist=mygroup sudogroups=slide net_autofs=true domain=cs.rutgers.edu
+# Here's the same example where LCSR system staff can also login and sudo
+#   localhost nfsserver=true local_homedir=true grouplist=coresysadmins,mygroup sudogroups=slide net_autofs=true domain=cs.rutgers.edu
 # If you already have users authorized to sudo, this setup won't disturb them.
 
 EOF
-if test "$ANSWER" = 1 ; then
-  if test "$LCSR" = "yes" ; then
-  echo localhost nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu>> /etc/ansible/hosts
-  else
-  echo localhost nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu>> /etc/ansible/hosts
-  fi
-else
-  if test "$LCSR" = "yes" ; then
+if test "$USEIPA" != "yes" ; then
+  echo "localhost nfsserver=true local_homedir=true idfiles=true net_autofs=true domain=cs.rutgers.edu" >> /etc/ansible/hosts
+elif test "$LCSR" = "yes" ; then
   echo "localhost nfsserver=true local_homedir=true grouplist=coresysadmins,$GROUP sudogroups=slide net_autofs=true domain=cs.rutgers.edu" >> /etc/ansible/hosts
-  else
+else
   echo "localhost nfsserver=true local_homedir=true grouplist=$GROUP sudogroups=slide net_autofs=true domain=cs.rutgers.edu" >> /etc/ansible/hosts
-  fi
 fi
 
 # now do the real work. 
@@ -202,9 +224,8 @@ fi
 
 
 echo -e "\n***************\n"
-echo "You can run this script again if you need to. However we don't recommend doing"
-echo "that once Kerberos is set up. If Kerberos is working, there are"
-echo "less disruptive ways to update the software or change who can login."
+echo "You can run this script again if you need to. However there are simpler"
+echo "alternatives."
 echo 
 echo "To update the Rutgers Kerberos software or setup, run"
 echo "  ansible-pull -U https://github.com/clhedrick/kerberos-ansible.git kerberos.yml"
