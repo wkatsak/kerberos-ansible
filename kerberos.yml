@@ -159,7 +159,7 @@
 
    - name: if idfiles, configure nss_ldap
      when: idfiles is defined and idfiles
-     copy: src="{{ playbook_dir }}/kerberos-files{{ ldap_src|default('/etc/nslcd.conf') }}" dest="{{ ldap_dest|default('/etc/nslcd.conf') }}"
+     template: src="{{ playbook_dir }}/kerberos-files{{ ldap_src|default('/etc/nslcd.conf') }}" dest="{{ ldap_dest|default('/etc/nslcd.conf') }}"
      notify:
      - restart nslcd     
 

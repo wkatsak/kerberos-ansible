@@ -43,4 +43,6 @@ boot_packages: ipa-client,krb5-workstation,chrony
 pkinit_package: krb5-pkinit
 ldap_packages: nss-pam-ldapd,nscd
 nslcd_service: nslcd
+nslcd_group: ldap
+
 
