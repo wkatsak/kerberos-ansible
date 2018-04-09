@@ -28,7 +28,7 @@ c217-5.lcsr.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmin
 # centos 7
 tall2.rutgers.edu
 # SLES 12
-chipa1.sas.rutgers.edu idfiles=true nfsserver=true
+chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 
 # CLUSTERS
 

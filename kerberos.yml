@@ -221,6 +221,10 @@
    - name: lcsr sudoers
      template: src="{{ playbook_dir }}/kerberos-files/etc/sudoers.d/lcsr" dest=/etc/sudoers.d/lcsr mode=0600 owner=root
 
+   - name: if autofs requested make sure it's installed
+     when: net_autofs is defined and net_autofs     
+     package: name="autofs" state=installed
+
    - name: comment out /net in auto.master if present
      when: net_autofs is defined and net_autofs
      replace:
