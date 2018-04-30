@@ -22,7 +22,7 @@ c217-3.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins 
 c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
-geneva.cs.rutgers.edu nfsserver=true local_homedir=true idfiles=true net_autofs=true domain=cs.rutgers.edu
+geneva.cs.rutgers.edu nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu grouplist=coresysadmins
 c217-5.lcsr.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 
 # centos 7
@@ -80,10 +80,16 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #  mkhomedird=true. add config for mkhomedird to /etc/krb5.conf
 #  limits=filename, put file into /etc/security/limits.d/40-lcsr.conf, 
 #     from kerberos-files/etc/security/limits.d
+#     this is used to set limits that the kernel can enforce, e.g. number of procs/user
 #  setlimits=filename, put file into /usr/libexec/setlimits.sh and call it from pam_exec, 
 #     from kerberos-files/usr/libexec. this probably only works for centos 7 and SLES 12
+#     this is used to set limits with cgroups, e.g. total memory/user or CPU share/user
 #  killjob=file, put file into /usr/libexec/killjob.sh and make cron run it hourly
-#  net_autofs-true, set up /net
+#     this is intended to kill bad jobs
+#  net_autofs=true, set up /net
+#  nfsserver=true, set up as an NFS server
+#  idfiles=true, get id info from /etc/passwd. Ssd is set id_provider=proxy, and ldap is
+#     used for nssswitch.conf. nslcd is set up if the distro has it
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]

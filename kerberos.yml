@@ -256,7 +256,7 @@
     - name: restart gssproxy
       service: name=gssproxy state=restarted
     - name: restart autofs
-      service: name=autofs state=restarted
+      service: name=autofs state=restarted enabled=yes
     - name: load selinux
       command: semodule -i /usr/local/etc/selinux/kerbsemanage.pp
     - name: restart nslcd
