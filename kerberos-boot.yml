@@ -155,6 +155,7 @@
      script: "{{ playbook_dir }}/kerberos-files/scripts/add-nfs-principal"
    - name: remove local copy of key table
      local_action: file path=/tmp/{{ ansible_fqdn }}-nfs.kt state=absent
+     become: false
 
 # without ipa client
    - name: krb5.conf

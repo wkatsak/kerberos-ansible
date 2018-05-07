@@ -321,6 +321,9 @@ gpu.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,login-ilab-gpu sudogroups=
 grep.cs.rutgers.edu
 interpreter.cs.rutgers.edu
 java.cs.rutgers.edu
+ilab1.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
+ilab2.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
+ilab3.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
 kill.cs.rutgers.edu
 less.cs.rutgers.edu
 lisp.cs.rutgers.edu
