@@ -39,7 +39,7 @@ reinstall_python_libs: true
 need_nfs_server_start: no
 nfs_server_name: nfs-kernel-server
 need_svcgssd_in_nks: no
-boot_packages: ipa-client,krb5-workstation,chrony
+boot_packages: ipa-client,krb5-workstation,chrony,rsync,tcsh
 pkinit_package: krb5-pkinit
 ldap_packages: nss-pam-ldapd,nscd
 nslcd_service: nslcd

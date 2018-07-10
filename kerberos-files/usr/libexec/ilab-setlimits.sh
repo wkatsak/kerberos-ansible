@@ -8,7 +8,8 @@ LOGIN=`getent passwd "$PAM_USER" | cut -d: -f3`
 # current values, so I try both orders
 # must read the value to commit them
 
-if [ "${LOGIN}" -ge 1000 ]; then
+# if user is in /etc/passwd it is a system user. no limit
+if ! getent -s files passwd "$PAM_USER"; then
   if ! (groups "$PAM_USER" | grep '\bno-mem-limit\b' >/dev/null) ; then
    # limit is 1/2 of phys mem. use right shift so it stays integer
    LIMIT=`vmstat -s | grep "total memory" | awk '{print rshift($1,1) "K"}'`

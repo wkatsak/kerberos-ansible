@@ -179,3 +179,10 @@ match address 172.17.141.141
 AuthenticationMethods gssapi-with-mic keyboard-interactive
 match all
 {% endif %}
+
+{% if rootsshmatch is defined %}
+match user root {{ rootsshmatch }}
+PermitRootLogin yes
+PubkeyAuthentication yes
+match all
+{% endif %}

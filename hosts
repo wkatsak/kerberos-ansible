@@ -17,9 +17,10 @@ domain = cs.rutgers.edu
 [testhosts]
 # ubuntu 14
 falcon.cs.rutgers.edu
-c217-3.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+c217-2.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+#c217-3.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # ubuntu 16
-c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+#c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
 geneva.cs.rutgers.edu nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu grouplist=coresysadmins
@@ -90,6 +91,8 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #  nfsserver=true, set up as an NFS server
 #  idfiles=true, get id info from /etc/passwd. Ssd is set id_provider=proxy, and ldap is
 #     used for nssswitch.conf. nslcd is set up if the distro has it
+#  rootsshmatch="host foo", sshd_config will allow root login from that match spec
+#  krb5_ccache_override=SPEC let you define a specific krb5_ccache value
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]
@@ -102,6 +105,8 @@ chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
 #new-farside.rutgers.edu
 pleiades.lcsr.rutgers.edu
 klinzhai.lcsr.rutgers.edu
+temp.lcsr.rutgers.edu nfsserver=true
+backup.lcsr.rutgers.edu nfsserver=true
 
 [staff:vars]
 cluster = staff
@@ -113,14 +118,9 @@ password = machineroom
 eagle.cs.rutgers.edu
 falcon.cs.rutgers.edu
 hawk.cs.rutgers.edu
-murphy.cs.rutgers.edu   
 waldo.cs.rutgers.edu   
 morgan.cs.rutgers.edu 
-mister.cs.rutgers.edu  
-mab.cs.rutgers.edu    
-titania.cs.rutgers.edu 
 marcone.cs.rutgers.edu
-piggy.cs.rutgers.edu
 
 dresden.cs.rutgers.edu groupsuffix=dresden2
 raith.cs.rutgers.edu groupsuffix=dresden2
@@ -128,6 +128,12 @@ bob.cs.rutgers.edu groupsuffix=dresden2
 mouse.cs.rutgers.edu groupsuffix=dresden2
 mac.cs.rutgers.edu groupsuffix=dresden2
 forthill.cs.rutgers.edu groupsuffix=dresden2
+piggy.cs.rutgers.edu groupsuffix=dresden2
+
+murphy.cs.rutgers.edu groupsuffix=dresden3
+mister.cs.rutgers.edu groupsuffix=dresden3
+mab.cs.rutgers.edu groupsuffix=dresden3
+titania.cs.rutgers.edu groupsuffix=dresden3
 
 [dresden:vars]
 cluster = dresden
@@ -197,6 +203,9 @@ dev6.lcsr.rutgers.edu grouplist=coresysadmins
 dev12.cs.rutgers.edu grouplist=coresysadmins
 dev13.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev14.cs.rutgers.edu grouplist=coresysadmins,appstaff
+cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
+dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
+csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
 
 [apps:vars]
 cluster = apps
@@ -266,8 +275,18 @@ h270-2.cs.rutgers.edu
 h270-3.cs.rutgers.edu
 h270-4.cs.rutgers.edu
 h270-5.cs.rutgers.edu
+h273-g1.cs.rutgers.edu
+h273-g2.cs.rutgers.edu
+h275-g1.cs.rutgers.edu
+h275-g2.cs.rutgers.edu
+h275-g3.cs.rutgers.edu
+h275-g4.cs.rutgers.edu
+h277-g1.cs.rutgers.edu
+h277-g2.cs.rutgers.edu
 h402-1.cs.rutgers.edu
 h402-2.cs.rutgers.edu
+h403-1.cs.rutgers.edu
+h403-g1.cs.rutgers.edu
 h405-1.cs.rutgers.edu
 h405-2.cs.rutgers.edu
 h408-1.cs.rutgers.edu
@@ -284,7 +303,6 @@ h416-2.cs.rutgers.edu
 h418-1.cs.rutgers.edu
 h418-2.cs.rutgers.edu
 h488-1.cs.rutgers.edu
-h488-2.cs.rutgers.edu
 h492-1.cs.rutgers.edu
 h492-2.cs.rutgers.edu
 
@@ -321,9 +339,17 @@ gpu.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,login-ilab-gpu sudogroups=
 grep.cs.rutgers.edu
 interpreter.cs.rutgers.edu
 java.cs.rutgers.edu
-ilab1.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
-ilab2.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
-ilab3.cs.rutgers.edu groupslist=coresysadmins,slide-ilab sudogroups=slide-ilab
+ilab1.cs.rutgers.edu 
+ilab2.cs.rutgers.edu 
+ilab3.cs.rutgers.edu 
+data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
+data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
+data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
+data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}"
+data-services2.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true
+data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true
+jupyter.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
+
 kill.cs.rutgers.edu
 less.cs.rutgers.edu
 lisp.cs.rutgers.edu
@@ -358,6 +384,39 @@ password = desktop
 limits = 40-ilab.conf
 setlimits = ilab-setlimits.sh
 killjob = killjob-ilab.sh
+
+# the following groups are for the special hadoop.yml script
+# hosts listed here should also be in one of the main groups,
+# unless all that's needed is /etc/hosts
+
+[ilab-data]
+data1.cs.rutgers.edu 
+data2.cs.rutgers.edu 
+data3.cs.rutgers.edu 
+data-services1.cs.rutgers.edu 
+data-services2.cs.rutgers.edu 
+data-services3.cs.rutgers.edu 
+jupyter.cs.rutgers.edu
+
+[ilab-data:vars]
+datahost = true
+
+[ilab-servers]
+ilab1.cs.rutgers.edu 
+ilab2.cs.rutgers.edu 
+ilab3.cs.rutgers.edu 
+
+[ilab-servers:vars]
+ilabserver = true
+
+[dual-interface]
+edinburgh.cs.rutgers.edu
+
+[dual-interface:children]
+ilab-servers
+ilab-data
+
+## end of hadoop.yml
 
 # 32 GB machines, but not the GPU systems
 [ilab-big]
@@ -394,6 +453,7 @@ groupsuffix = devel
 # slide-devel currently includes appstaff
 password = desktop
 
+
 [special]
 classvm08.cs.rutgers.edu grouplist=coresysadmins,curateddata
 classvm350.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,cs211s18,cs211s18-admin sudogroups=slide-ilab
@@ -403,6 +463,10 @@ cluster = special
 password = machineroom
 local_homedir = true
 sshpubkey = yes
+
+
+
+
 sss_try_first = yes
 net_autofs = true
 
@@ -427,3 +491,7 @@ cluster = researchuser
 password = machineroom
 local_homedir = true
 net_autofs = true
+
+
+
+

@@ -10,7 +10,7 @@
 
 ANONCC=KEYRING:session:`id -u`:$$
 
-{% if has_kinit_n %}
+{% if has_kinit_n and (nokrb5conf is not defined or not nokrb5conf) %}
 KRB5CCNAME="$ANONCC" kinit -n >/dev/null
 {% else %}
 KRB5CCNAME="$ANONCC" kgetcred -a >/dev/null

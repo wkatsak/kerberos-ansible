@@ -13,6 +13,10 @@ do
   if test "$LIMIT" = 'unlimited'
   then
      USER=`ps -h -p $i -o user`
+     # if the user is in /etc/passwd it's a system user. no limit
+     if getent -s files passwd "$USER"; then
+        continue
+     fi
      JOB=`ps -hu -p $i`
      logger "killjob: killed ` ps -hu -p $i`"
      kill $i
