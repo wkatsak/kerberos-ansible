@@ -46,5 +46,6 @@ pkinit_package: krb5-pkinit
 ldap_packages: nss-pam-ldapd,nscd
 nslcd_service: nslcd
 nslcd_group: ldap
-
-
+ssh_noknown2: true
+ssh_nonewkeys: true
+ssh_nohostbased: true

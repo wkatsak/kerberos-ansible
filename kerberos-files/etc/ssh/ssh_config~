@@ -76,10 +76,12 @@ Host *
 # host based, and no reason not to let them use pubkey if some host accepts it
 PubkeyAuthentication yes
 HostbasedAuthentication yes
+{% if not ssh_nokeysign is defined %}
 EnableSSHKeysign yes
+{% endif %}
 GSSAPIDelegateCredentials yes
 
 # if we ever use IPA's known hosts data, this needs to be enabled:
-GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts
+GlobalKnownHostsFile /var/lib/sss/pubconf/known_hosts {{ '' if ssh_noknown2 is defined else '/etc/ssh/ssh_known_hosts2'}}
 ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h
 

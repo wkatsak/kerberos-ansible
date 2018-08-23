@@ -78,7 +78,6 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #     using /etc/passwd if all users have entries, or homedir= for sss users
 #  sshpubkey. allow login with ssh user key. Please don't use without thinking. A user
 #     who logs in this way won't have a kerberos credential.
-#  mkhomedird=true. add config for mkhomedird to /etc/krb5.conf
 #  limits=filename, put file into /etc/security/limits.d/40-lcsr.conf, 
 #     from kerberos-files/etc/security/limits.d
 #     this is used to set limits that the kernel can enforce, e.g. number of procs/user
@@ -93,11 +92,19 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #     used for nssswitch.conf. nslcd is set up if the distro has it
 #  rootsshmatch="host foo", sshd_config will allow root login from that match spec
 #  krb5_ccache_override=SPEC let you define a specific krb5_ccache value
+#  nokrb5conf=true to not sync /etc/krb5.conf [hadoop manages it for cluster members]
+#  memorylimit=33554432K [32 g] - user memory limit; requires setlimits and a template that 
+#     has this. If not specified, the script computes one. for ilab currently it's 1/2 
+#     of physical memory.
+#  nvidialimit=true - limit user to one nvidia GPU. requires setlimits and a template that
+#     has this.
+#  nocommonmap=true - omit common automount map
+#  clusterdata=true - add /common/clusterdata to common map
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]
 farside.lcsr.rutgers.edu
-services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true mkhomedird=true
+services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true
 wordpress.cs.rutgers.edu homedir=/home local_homedir=true
 c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users
 chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
@@ -107,6 +114,7 @@ pleiades.lcsr.rutgers.edu
 klinzhai.lcsr.rutgers.edu
 temp.lcsr.rutgers.edu nfsserver=true
 backup.lcsr.rutgers.edu nfsserver=true
+hanz.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 
 [staff:vars]
 cluster = staff
@@ -145,8 +153,17 @@ local_homedir = true
 netboot.lcsr.rutgers.edu
 c217-nfs.cs.rutgers.edu grouplist=coresysadmins,sysadmins,c217-users
 config.lcsr.rutgers.edu
+printserver.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+dns.lcsr.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+# centos 6. uses nslcd, config in /etc/nslcd.conf and /etc/pam_ldap.conf
+# ansible was used once, so it has renewd, etc. but nsswitch and pam were
+# fixed to use ldap because sssd doesn't understand one time passwords
+report.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+lawn-gw.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+spock.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+# end centos 6
 #mrtg.rutgers.edu
-#report.cs.rutgers.edu
+
 
 [services:vars]
 cluster = services
@@ -178,6 +195,7 @@ admin.videowall.cs.rutgers.edu grouplist=coresysadmins
 cluster = apps-old
 password = apps
 local_homedir = true
+nocommonmap = true
 
 [apps]
 #drupal login
@@ -203,6 +221,7 @@ dev6.lcsr.rutgers.edu grouplist=coresysadmins
 dev12.cs.rutgers.edu grouplist=coresysadmins
 dev13.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev14.cs.rutgers.edu grouplist=coresysadmins,appstaff
+dev15.cs.rutgers.edu grouplist=coresysadmins,appstaff
 cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
@@ -213,6 +232,7 @@ password = apps
 local_homedir = true
 sshpubkey = yes
 sss_try_first = yes
+nocommonmap = true
 
 [faculty]
 atanasoff.rutgers.edu 
@@ -224,6 +244,7 @@ h363.cs.rutgers.edu
 h403-f1.cs.rutgers.edu
 klaatu.rutgers.edu
 porthos.cs.rutgers.edu password=machineroom sshstricthostname=yes
+h268-f1.cs.rutgers.edu
 stefi.rutgers.edu
 
 [faculty:vars]
@@ -268,8 +289,8 @@ h257-2.cs.rutgers.edu
 h264a-1.cs.rutgers.edu
 h266-1.cs.rutgers.edu
 h266-2.cs.rutgers.edu
-h268-1.cs.rutgers.edu
-h268-2.cs.rutgers.edu
+h419-g1.cs.rutgers.edu
+h419-g2.cs.rutgers.edu
 h270-1.cs.rutgers.edu
 h270-2.cs.rutgers.edu
 h270-3.cs.rutgers.edu
@@ -281,8 +302,6 @@ h275-g1.cs.rutgers.edu
 h275-g2.cs.rutgers.edu
 h275-g3.cs.rutgers.edu
 h275-g4.cs.rutgers.edu
-h277-g1.cs.rutgers.edu
-h277-g2.cs.rutgers.edu
 h402-1.cs.rutgers.edu
 h402-2.cs.rutgers.edu
 h403-1.cs.rutgers.edu
@@ -339,16 +358,17 @@ gpu.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,login-ilab-gpu sudogroups=
 grep.cs.rutgers.edu
 interpreter.cs.rutgers.edu
 java.cs.rutgers.edu
-ilab1.cs.rutgers.edu 
-ilab2.cs.rutgers.edu 
-ilab3.cs.rutgers.edu 
-data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
-data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
-data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
-data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}"
-data-services2.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true
-data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true
-jupyter.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu"
+# for fall, add nvidialimit=1 memorylimit="50331648K" (48 GB)
+ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
+ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
+ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
+data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
+data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
+data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
+data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}" nocommonmap=true
+data-services2.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
+data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
+jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true
 
 kill.cs.rutgers.edu
 less.cs.rutgers.edu
@@ -362,7 +382,6 @@ pascal.cs.rutgers.edu
 patterns.cs.rutgers.edu
 perl.cs.rutgers.edu
 prolog.cs.rutgers.edu
-prototype.cs.rutgers.edu
 pwd.cs.rutgers.edu
 python.cs.rutgers.edu
 rm.cs.rutgers.edu
@@ -390,7 +409,7 @@ killjob = killjob-ilab.sh
 # unless all that's needed is /etc/hosts
 
 [ilab-data]
-data1.cs.rutgers.edu 
+data1.cs.rutgers.edu
 data2.cs.rutgers.edu 
 data3.cs.rutgers.edu 
 data-services1.cs.rutgers.edu 
@@ -411,6 +430,8 @@ ilabserver = true
 
 [dual-interface]
 edinburgh.cs.rutgers.edu
+ajax.cs.rutgers.edu
+jason.cs.rutgers.edu
 
 [dual-interface:children]
 ilab-servers
@@ -463,8 +484,7 @@ cluster = special
 password = machineroom
 local_homedir = true
 sshpubkey = yes
-
-
+nocommonmap = true
 
 
 sss_try_first = yes

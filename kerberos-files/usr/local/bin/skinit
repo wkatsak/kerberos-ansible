@@ -8,6 +8,7 @@
 
 # ANONCC will be used to armor
 
+PATH=/usr/bin:/bin
 ANONCC=KEYRING:session:`id -u`:$$
 
 {% if has_kinit_n and (nokrb5conf is not defined or not nokrb5conf) %}

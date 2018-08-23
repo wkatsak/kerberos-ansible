@@ -88,7 +88,7 @@
 
    - name: /usr/libexec/setlimits.sh if needed
      when: setlimits is defined
-     copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/{{ setlimits }}" dest=/usr/libexec/setlimits.sh owner=root mode=755
+     template: src="{{ playbook_dir }}/kerberos-files/usr/libexec/{{ setlimits }}" dest=/usr/libexec/setlimits.sh owner=root mode=755
 
    - name: remove /usr/libexec/setlimits.sh if not needed
      when: setlimits is not defined
@@ -174,6 +174,11 @@
      notify: 
      - restart sshd
    - meta: flush_handlers
+# and ssh_config for centos 6, ssh_noknown2 set
+   - name: /etc/ssh/sshd_config
+     template: src="{{ playbook_dir }}/kerberos-files/etc/ssh/ssh_config" dest=/etc/ssh/ssh_config mode=0644 owner=root
+
+
 
 # sssd does its own caching. If nscd is running we may have old data cached
 #   that will make things not work for a while
@@ -188,7 +193,7 @@
 # it's separate because we have to call the configurator if it changes
    - name: rukerb pam config
      when: has_pam_configs
-     copy: src="{{ playbook_dir }}/kerberos-files/usr/share/pam-configs/rukerb" dest=/usr/share/pam-configs/rukerb
+     template: src="{{ playbook_dir }}/kerberos-files/usr/share/pam-configs/rukerb" dest=/usr/share/pam-configs/rukerb
      notify:
      - rebuild pam
    - meta: flush_handlers
@@ -219,11 +224,22 @@
      notify:
      - restart gssproxy
 
+   - name: wrap rpc.gssd to make sure it gets the right principal
+     when: ansible_service_mgr == "systemd"
+     block:
+       - copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/gssd-wrap.so" dest=/usr/libexec/gssd-wrap.so mode=0755 owner=root
+       - file: state=directory path=/etc/systemd/system/rpc-gssd.service.d/ mode=0755
+       - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf" dest=/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf mode=0644 owner=root
+         notify:
+          - daemon and gssd
+
+   - meta: flush_handlers
+
    - name: lcsr sudoers
      template: src="{{ playbook_dir }}/kerberos-files/etc/sudoers.d/lcsr" dest=/etc/sudoers.d/lcsr mode=0600 owner=root
 
    - name: if autofs requested make sure it's installed
-     when: net_autofs is defined and net_autofs     
+     when: (net_autofs is defined and net_autofs) or (nocommonmap is not defined or not nocommonmap)
      package: name="autofs" state=installed
 
    - name: comment out /net in auto.master if present
@@ -233,8 +249,8 @@
        regexp: '^(\s*)/net(.*)$'
        replace: '#\1/net\2'
 
-   - name: autofs /net, directory
-     when: net_autofs is defined and net_autofs
+   - name: autofs directory
+     when: (net_autofs is defined and net_autofs) or (nocommonmap is not defined or not nocommonmap)
      file: path=/etc/auto.master.d mode=755 owner=root state=directory
 
    - name: autofs /net
@@ -242,6 +258,24 @@
      copy: src="{{ playbook_dir }}/kerberos-files/etc/auto.master.d/net.autofs" dest=/etc/auto.master.d/net.autofs mode=644 owner=root
      notify:
       - restart autofs
+
+   - name: autofs /common
+     when: nocommonmap is not defined or not nocommonmap
+     copy: src="{{ playbook_dir }}/kerberos-files/etc/auto.master.d/common.autofs" dest=/etc/auto.master.d/common.autofs mode=644 owner=root
+     notify:
+      - restart autofs
+
+   - name: autofs /common/users
+     when: nocommonmap is not defined or not nocommonmap
+     template: src="{{ playbook_dir }}/kerberos-files/etc/auto.master.d/auto.common" dest=/etc/auto.master.d/auto.common mode=644 owner=root
+     notify:
+      - restart autofs
+
+   - meta: flush_handlers
+
+   - name: install /usr/libexec/clusterdatamkdir.sh
+     when: clusterdata is defined 
+     copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/clusterdatamkdir.sh" dest=/usr/libexec/clusterdatamkdir.sh mode=755 owner=root
 
   handlers:
     - name: restart renewd
@@ -263,6 +297,9 @@
     - name: restart nslcd
       when: nslcd_service is defined
       service: name={{ nslcd_service }} state=restarted enabled=yes
+    - name: daemon and gssd
+      systemd: daemon_reload=yes name={{ gssd_service }} state=restarted
 
+      
 
 
