@@ -96,16 +96,18 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #  memorylimit=33554432K [32 g] - user memory limit; requires setlimits and a template that 
 #     has this. If not specified, the script computes one. for ilab currently it's 1/2 
 #     of physical memory.
-#  nvidialimit=true - limit user to one nvidia GPU. requires setlimits and a template that
+#  nvidialimit=N - limit user to N nvidia GPUs. requires setlimits and a template that.
 #     has this.
 #  nocommonmap=true - omit common automount map
 #  clusterdata=true - add /common/clusterdata to common map
+#  noacctmessage="********* This is ilab.rutgers.edu. You probably want ilab.cs.rutgers.edu"
+#    specify message to give if user has no account on the system.      
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]
 farside.lcsr.rutgers.edu
 services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true
-wordpress.cs.rutgers.edu homedir=/home local_homedir=true
+test-services.cs.rutgers.edu homedir=/home local_homedir=true
 c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users
 chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
 #klinzhai.rutgers.edu
@@ -152,7 +154,7 @@ local_homedir = true
 [services]
 netboot.lcsr.rutgers.edu
 c217-nfs.cs.rutgers.edu grouplist=coresysadmins,sysadmins,c217-users
-config.lcsr.rutgers.edu
+config.lcsr.rutgers.edu grouplist=coresysadmins
 printserver.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 dns.lcsr.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 # centos 6. uses nslcd, config in /etc/nslcd.conf and /etc/pam_ldap.conf
@@ -205,7 +207,7 @@ nocommonmap = true
 dev2.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
 dev5.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb,drupal
 dev6.cs.rutgers.edu grouplist=coresysadmins sshstricthostname=yes
-dev8.cs.rutgers.edu grouplist=coresysadmins
+dev8.cs.rutgers.edu grouplist=coresysadmins noacctmessage="********* This is ilab.rutgers.edu. You probably want ilab.cs.rutgers.edu"
 dev4.cs.rutgers.edu grouplist=coresysadmins,appstaff,appweb,drupal
 dev4.lcsr.rutgers.edu grouplist=coresysadmins
 dev8.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
@@ -239,7 +241,6 @@ atanasoff.rutgers.edu
 c221-f1.cs.rutgers.edu
 constance.cs.rutgers.edu password=machineroom sshstricthostname=yes
 dogmatix.rutgers.edu
-ganapathy.cs.rutgers.edu
 h363.cs.rutgers.edu
 h403-f1.cs.rutgers.edu
 klaatu.rutgers.edu
@@ -302,14 +303,9 @@ h275-g1.cs.rutgers.edu
 h275-g2.cs.rutgers.edu
 h275-g3.cs.rutgers.edu
 h275-g4.cs.rutgers.edu
-h402-1.cs.rutgers.edu
-h402-2.cs.rutgers.edu
-h403-1.cs.rutgers.edu
 h403-g1.cs.rutgers.edu
 h405-1.cs.rutgers.edu
 h405-2.cs.rutgers.edu
-h408-1.cs.rutgers.edu
-h408-2.cs.rutgers.edu
 h410-1.cs.rutgers.edu
 h410-2.cs.rutgers.edu
 h412-1.cs.rutgers.edu
@@ -321,9 +317,6 @@ h416-1.cs.rutgers.edu
 h416-2.cs.rutgers.edu
 h418-1.cs.rutgers.edu
 h418-2.cs.rutgers.edu
-h488-1.cs.rutgers.edu
-h492-1.cs.rutgers.edu
-h492-2.cs.rutgers.edu
 
 [grad:vars]
 cluster = grad
@@ -500,17 +493,20 @@ net_autofs = true
 # Password isn't used unless someone runs passwords.yml on the system.
 
 #NOTE: if cluster=researchuser, enroll-host will put them in the hostgroup research-user
-# If you most hosts into or out of this cluster,
+# If you move hosts into or out of this cluster,
 # make sure you adjust research-user accordingly.
 
 [researchuser]
 markov.cs.rutgers.edu
+panic-master.cs.rutgers.edu grouplist=panic-users,coresysadmins sudogroups=panic-admins,coresysadmins
 
 [researchuser:vars]
 cluster = researchuser
 password = machineroom
 local_homedir = true
 net_autofs = true
+nfsserver = true
+domain=cs.rutgers.edu
 
 
 

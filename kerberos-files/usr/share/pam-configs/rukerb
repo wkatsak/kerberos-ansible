@@ -13,4 +13,4 @@ Session:
 {% if nocommonmap is not defined or not nocommonmap %}
 	optional	/usr/lib64/security/pam_kmkhomedir.so dir=/common/users/%u
 {% endif %}
-	optional	pam_mkhomedir.so
+

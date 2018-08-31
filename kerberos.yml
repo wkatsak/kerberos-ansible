@@ -141,10 +141,10 @@
      when: not ( nokrb5conf is defined and nokrb5conf )
      template: src="{{ playbook_dir }}/kerberos-files/etc/krb5.conf" dest=/etc/krb5.conf owner=root mode=0644
 
-   - name: clear /var/lib/gssproxy/clients/krb5cc_%U
-     shell: rm -f /var/lib/gssproxy/clients/krb5cc_*
-     args:
-       removes: "/var/lib/gssproxy/clients/krb5cc_*"
+#   - name: clear /var/lib/gssproxy/clients/krb5cc_%U
+#     shell: rm -f /var/lib/gssproxy/clients/krb5cc_*
+#     args:
+#       removes: "/var/lib/gssproxy/clients/krb5cc_*"
 
 # sssd.conf differs per cluster and in other ways
    - name: /etc/sssd/sssd.conf
