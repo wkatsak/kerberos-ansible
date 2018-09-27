@@ -75,7 +75,16 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #  homedir=... set override  homedir in sssd.conf. if not specified, leave default
 #  force_password=yes. modifies sshd so must login with a password
 #  local_homedir=true. don't use pam_kmkhomedir. still need to define the location of the homedir
-#     using /etc/passwd if all users have entries, or homedir= for sss users
+#     using /etc/passwd if all users have entries, or homedir= for sss users. If this is not
+#     defined, pam_kmkhomedir is used and pam_mkhomedir is omitted (since it won't work for
+#     kerberized directories). local_homedir should also be set if you have home directories
+#     on a file server, but they're not mounted with Kerberos. Note by default local homedirs
+#     are created 0755. To change this specify homedir_umask=077. Kerberized home directories
+#     have a default of 0700.
+#  homedir_umask = nnn. pass the umask argument to pam_kmkhomedir or pam_mkhomedir. Note that
+#     it does slightly different things for the two modules. Note also that octal numbers, i.e.
+#     numbers beginning with 0, will be converted to decimal. They'll work fine but may look a
+#     bit unexpected. (This is a feature of jinja2. I haven't found a way to disable it.)
 #  sshpubkey. allow login with ssh user key. Please don't use without thinking. A user
 #     who logs in this way won't have a kerberos credential.
 #  limits=filename, put file into /etc/security/limits.d/40-lcsr.conf, 
@@ -108,7 +117,7 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 farside.lcsr.rutgers.edu
 services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true
 test-services.cs.rutgers.edu homedir=/home local_homedir=true
-c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users
+c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users homedir_umask=077
 chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
 #klinzhai.rutgers.edu
 #new-farside.rutgers.edu
@@ -161,6 +170,8 @@ dns.lcsr.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 # ansible was used once, so it has renewd, etc. but nsswitch and pam were
 # fixed to use ldap because sssd doesn't understand one time passwords
 report.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+nomail.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+spamfilter.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 lawn-gw.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 spock.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
 # end centos 6
@@ -219,14 +230,19 @@ dev7.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
 dev9.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
 dev10.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
 dev13.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev15.lcsr.rutgers.edu grouplist=coresysadmins,sysstudents
+dev16.lcsr.rutgers.edu grouplist=coresysadmins,sysstudents
 dev6.lcsr.rutgers.edu grouplist=coresysadmins
 dev12.cs.rutgers.edu grouplist=coresysadmins
 dev13.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev14.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev15.cs.rutgers.edu grouplist=coresysadmins,appstaff
+dev16.cs.rutgers.edu grouplist=coresysadmins,appstaff
 cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
+dynrec.cs.rutgers.edu grouplist=coresysadmins,login-dynrec
+devdynrec.cs.rutgers.edu grouplist=coresysadmins,login-dynrec
 
 [apps:vars]
 cluster = apps
@@ -312,19 +328,26 @@ h412-1.cs.rutgers.edu
 h412-2.cs.rutgers.edu
 h414-1.cs.rutgers.edu
 h414-2.cs.rutgers.edu
-h415-1.cs.rutgers.edu
+h415-g1.cs.rutgers.edu
 h416-1.cs.rutgers.edu
 h416-2.cs.rutgers.edu
 h418-1.cs.rutgers.edu
 h418-2.cs.rutgers.edu
+c329-g1.cs.rutgers.edu
+c331-g1.cs.rutgers.edu
+c334-g1.cs.rutgers.edu
+c335-g1.cs.rutgers.edu
+c340-g1.cs.rutgers.edu
+c342-g1.cs.rutgers.edu
+c346-g2.cs.rutgers.edu
 
 [grad:vars]
 cluster = grad
 homedir = /grad/users
 groupsuffix = grad
 password = desktop
-#limits = 40-ilab.conf
-#setlimits = ilab-setlimits.sh
+limits = 40-ilab.conf
+setlimits = ilab-setlimits.sh
 
 [ilab]
 adapter.cs.rutgers.edu
@@ -355,13 +378,13 @@ java.cs.rutgers.edu
 ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
 ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
 ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
-data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
-data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
-data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="100000000K" clusterdata=true
+data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
+data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
+data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}" nocommonmap=true
-data-services2.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
+data-services2.cs.rutgers.edu rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true memorylimit="50331648K"
 data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
-jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true
+jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true memorylimit="50331648K"
 
 kill.cs.rutgers.edu
 less.cs.rutgers.edu
@@ -396,6 +419,41 @@ password = desktop
 limits = 40-ilab.conf
 setlimits = ilab-setlimits.sh
 killjob = killjob-ilab.sh
+
+[studentvms]
+
+classvm311.cs.rutgers.edu grouplist=login-gazebo1,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm312.cs.rutgers.edu grouplist=login-gazebo2,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm313.cs.rutgers.edu grouplist=login-gazebo3,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm314.cs.rutgers.edu grouplist=login-gazebo4,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm315.cs.rutgers.edu grouplist=login-gazebo5,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm316.cs.rutgers.edu grouplist=login-gazebo6,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm317.cs.rutgers.edu grouplist=login-gazebo7,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm318.cs.rutgers.edu grouplist=login-gazebo8,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm319.cs.rutgers.edu grouplist=login-gazebo9,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm320.cs.rutgers.edu grouplist=login-gazebo10,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm321.cs.rutgers.edu grouplist=login-gazebo11,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm322.cs.rutgers.edu grouplist=login-gazebo12,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm323.cs.rutgers.edu grouplist=login-gazebo13,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm324.cs.rutgers.edu grouplist=login-gazebo14,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm325.cs.rutgers.edu grouplist=login-gazebo15,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm326.cs.rutgers.edu grouplist=login-gazebo16,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm327.cs.rutgers.edu grouplist=login-gazebo17,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm328.cs.rutgers.edu grouplist=login-gazebo18,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm329.cs.rutgers.edu grouplist=login-gazebo19,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm330.cs.rutgers.edu grouplist=login-gazebo20,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm331.cs.rutgers.edu grouplist=login-gazebo21,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm332.cs.rutgers.edu grouplist=login-gazebo22,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm333.cs.rutgers.edu grouplist=login-gazebo23,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm334.cs.rutgers.edu grouplist=login-gazebo24,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+classvm335.cs.rutgers.edu grouplist=login-gazebo25,coresysadmins,hack-accounts,robotics-ta sudogroups=slide-ilab
+
+
+[studentvms:vars]
+cluster = ilab
+homedir = /ilab/users
+groupsuffix = ilab
+password = desktop
 
 # the following groups are for the special hadoop.yml script
 # hosts listed here should also be in one of the main groups,
@@ -452,10 +510,10 @@ vi.cs.rutgers.edu
 [coredev]
 c215-d1.cs.rutgers.edu
 c223-d1.cs.rutgers.edu
-c225-d1.cs.rutgers.edu
-c225-d2.cs.rutgers.edu
 c237-d1.cs.rutgers.edu
 c237-d2.cs.rutgers.edu
+c237-d3.cs.rutgers.edu
+c237-d4.cs.rutgers.edu
 c239-d1.cs.rutgers.edu
 c239-d2.cs.rutgers.edu
 c239-d3.cs.rutgers.edu

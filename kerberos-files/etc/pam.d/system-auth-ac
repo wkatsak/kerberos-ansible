@@ -42,12 +42,13 @@ session     required      pam_unix.so
 session     optional      pam_sss.so
 session     optional      pam_reg_cc.so usecollection
 {% if local_homedir is not defined or not local_homedir %}
-session     optional      pam_kmkhomedir.so 
+session     optional      pam_kmkhomedir.so {{ 'umask=' ~+homedir_umask if homedir_umask is defined else '' }}
+{% else %}
+session     optional      pam_mkhomedir.so {{ 'umask=' ~ homedir_umask if homedir_umask is defined else '' }}
 {% endif %}
 {% if nocommonmap is not defined or not nocommonmap %}
 session     optional      pam_kmkhomedir.so dir=/common/users/%u
 {% endif %}
-session     optional      pam_mkhomedir.so
 {% if setlimits is defined %}
 session     optional      pam_exec.so /usr/libexec/setlimits.sh 
 {% endif %}

@@ -23,8 +23,9 @@ do
      sleep 10
      kill -9 $i
      mail -r help@cs.rutgers.edu -s "killed job on `hostname`" "$USER"@rutgers.edu <<EOF
-The following job has used more than 24 hours of CPU time. We have killed it.
-If you need to run jobs longer than 24 hours, please contact help@cs.rutgers.edu.
+The following job has used more than 24 hours of CPU time. We have terminated it.
+If you need to run jobs longer than 24 CPU hours, 
+see url:www.cs.rutgers.edu/resources/limitation-enforced-on-cs-linux-machines
 
 $JOB          
 EOF

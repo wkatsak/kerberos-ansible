@@ -4,7 +4,7 @@
 # the script fails. But when you rerun it a start or restart is missed because
   # the thing that triggered it is already there.
 
-- hosts: testhosts dresden faculty research staff services ilab grad apps coredev special researchuser localhost
+- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser localhost
   become: true
   environment:
     PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
@@ -199,7 +199,9 @@
    - meta: flush_handlers
 
 # fix protection for /run/renewdccs. original code in pam_reg_cc set it to 700, not 0700
+# data services needs a special setup so zeppelin can write it
    - name: fix protection for /run/renewdccs
+     when: ansible_fqdn != 'data-services2.cs.rutgers.edu'
      file: path=/run/renewdccs mode=0700 state=directory owner=root
 
 # chrony.conf separate because we have to restart if changes
