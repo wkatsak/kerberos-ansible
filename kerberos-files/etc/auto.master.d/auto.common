@@ -1,0 +1,5 @@
+users      -tcp,hard,intr,bg,rw    jason.cs.rutgers.edu:/exports/common/users
+{% if clusterdata is defined %}
+clusterdata  -tcp,hard,intr,bg,rw    jason.cs.rutgers.edu:/exports/common/clusterdata
+{% endif %}
+

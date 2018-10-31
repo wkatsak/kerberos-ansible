@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if test "$1" != '-l'; then
+echo All sessions for user `id -urn`, with total CPU of all processes in the session.
+echo For specifics of what is in each session, use '"sessions -l"'
+echo
+fi
+
+for c in /sys/fs/cgroup/cpu,cpuacct/user.slice/user-`id -u`.slice/session*scope; do
+ ID=`echo $c|sed -e 's/.sys.fs.cgroup.cpu,cpuacct.user.slice.user-[0-9]*.slice.session-//' -e 's/.scope//'`
+
+ if test "$1" = '-l'; then
+   systemctl status session-$ID.scope
+ fi
+
+ NANO=`cat $c/cpuacct.usage`
+ SEC=`expr $NANO / 1000000000`
+ MIN=`expr $NANO / 60000000000`
+ HOUR=`expr $NANO / 3600000000000`
+ if expr $SEC '<' 60 >/dev/null ; then OUTPUT="$SEC sec"; 
+ elif expr $MIN '<' 60 >/dev/null; then OUTPUT="$MIN min";
+ else OUTPUT="$HOUR hour"
+ fi
+
+ echo "$ID: $OUTPUT"
+
+ if test "$1" = '-l'; then
+   echo
+ fi
+
+done
+
+
+

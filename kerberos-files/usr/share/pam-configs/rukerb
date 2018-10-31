@@ -1,6 +1,6 @@
 Name: Rutgers kerberos PAM modules
 Default: yes
-Priority: 1
+Priority: -1
 
 Session-Type: Additional
 Session:
@@ -8,9 +8,15 @@ Session:
 	optional	/usr/lib64/security/pam_kgetcred.so 
 	optional	/usr/lib64/security/pam_reg_cc.so usecollection
 {% if local_homedir is not defined or not local_homedir %}
-	optional	/usr/lib64/security/pam_kmkhomedir.so
+	optional	/usr/lib64/security/pam_kmkhomedir.so {{ 'umask=' ~ homedir_umask if homedir_umask is defined else '' }}
+{% endif %}
+{% if mkhomedir is defined and mkhomedir %}
+	optional	pam_mkhomedir.so
 {% endif %}
 {% if nocommonmap is not defined or not nocommonmap %}
 	optional	/usr/lib64/security/pam_kmkhomedir.so dir=/common/users/%u
+{% endif %}
+{% if setlimits is defined and setlimits %}
+	optional	pam_exec.so /usr/libexec/setlimits.sh
 {% endif %}
 

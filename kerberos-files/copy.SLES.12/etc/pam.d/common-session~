@@ -1,4 +1,0 @@
-# from ansible
-session     include        common-session-pc
-session optional        pam_reg_cc.so usecollection
-session optional        pam_kmkhomedir.so

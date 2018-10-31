@@ -1,4 +1,0 @@
-# /net -hosts -sec=krb5:sys will allow either; works with Centos server, but not netapp
-# with netapp can only have one option
-/net -hosts -sec=krb5
-

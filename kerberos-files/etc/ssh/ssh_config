@@ -75,10 +75,10 @@ Host *
 # we don't allow pubkey or hosts coming in, but to get to old systems we may need
 # host based, and no reason not to let them use pubkey if some host accepts it
 PubkeyAuthentication yes
+{% if ssh_nohostbased is not defined %}
 HostbasedAuthentication yes
-{% if not ssh_nokeysign is defined %}
-EnableSSHKeysign yes
 {% endif %}
+EnableSSHKeysign yes
 GSSAPIDelegateCredentials yes
 
 # if we ever use IPA's known hosts data, this needs to be enabled:

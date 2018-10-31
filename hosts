@@ -85,16 +85,21 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #     it does slightly different things for the two modules. Note also that octal numbers, i.e.
 #     numbers beginning with 0, will be converted to decimal. They'll work fine but may look a
 #     bit unexpected. (This is a feature of jinja2. I haven't found a way to disable it.)
+#  mkhomedir = true. for ubuntu we don't normally change pam_mkhomedir, as it has nothing to
+#     do with Kerberos. However on some cluster we want it, and it's easier to do it here.
+#     only implemented for Ubuntu
 #  sshpubkey. allow login with ssh user key. Please don't use without thinking. A user
 #     who logs in this way won't have a kerberos credential.
 #  limits=filename, put file into /etc/security/limits.d/40-lcsr.conf, 
 #     from kerberos-files/etc/security/limits.d
 #     this is used to set limits that the kernel can enforce, e.g. number of procs/user
 #  setlimits=filename, put file into /usr/libexec/setlimits.sh and call it from pam_exec, 
-#     from kerberos-files/usr/libexec. this probably only works for centos 7 and SLES 12
+#     from kerberos-files/usr/libexec.
 #     this is used to set limits with cgroups, e.g. total memory/user or CPU share/user
+#     this script is likely to be os- and cluster-specific, so be careful
 #  killjob=file, put file into /usr/libexec/killjob.sh and make cron run it hourly
 #     this is intended to kill bad jobs
+#     the specific script is likely to be cluster-specific, and maybe os-specific
 #  net_autofs=true, set up /net
 #  nfsserver=true, set up as an NFS server
 #  idfiles=true, get id info from /etc/passwd. Ssd is set id_provider=proxy, and ldap is
@@ -159,6 +164,8 @@ cluster = dresden
 groupsuffix = dresden1
 password = machineroom
 local_homedir = true
+mkhomedir = true
+setlimits = fairshare.u14-setlimits.sh
 
 [services]
 netboot.lcsr.rutgers.edu
@@ -209,6 +216,7 @@ cluster = apps-old
 password = apps
 local_homedir = true
 nocommonmap = true
+homedir_umask = 077
 
 [apps]
 #drupal login
@@ -230,6 +238,7 @@ dev7.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
 dev9.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
 dev10.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
 dev13.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appstudents
+dev12.lcsr.rutgers.edu grouplist=coresysadmins,sysstudents
 dev15.lcsr.rutgers.edu grouplist=coresysadmins,sysstudents
 dev16.lcsr.rutgers.edu grouplist=coresysadmins,sysstudents
 dev6.lcsr.rutgers.edu grouplist=coresysadmins
@@ -251,6 +260,7 @@ local_homedir = true
 sshpubkey = yes
 sss_try_first = yes
 nocommonmap = true
+homedir_umask = 077
 
 [faculty]
 atanasoff.rutgers.edu 
@@ -269,6 +279,7 @@ cluster = faculty
 homedir = /fac/users
 groupsuffix = faculty
 password = desktop
+homedir_umask = 077
 
 # commented out are centos 5
 [research]
@@ -289,6 +300,7 @@ cluster = research
 homedir = /res/users
 groupsuffix = research
 password = machineroom
+homedir_umask = 077
 
 [grad]
 c211-1.cs.rutgers.edu
@@ -312,7 +324,6 @@ h270-1.cs.rutgers.edu
 h270-2.cs.rutgers.edu
 h270-3.cs.rutgers.edu
 h270-4.cs.rutgers.edu
-h270-5.cs.rutgers.edu
 h273-g1.cs.rutgers.edu
 h273-g2.cs.rutgers.edu
 h275-g1.cs.rutgers.edu
@@ -348,9 +359,9 @@ groupsuffix = grad
 password = desktop
 limits = 40-ilab.conf
 setlimits = ilab-setlimits.sh
+homedir_umask = 077
 
 [ilab]
-adapter.cs.rutgers.edu
 assembly.cs.rutgers.edu
 atlas.cs.rutgers.edu
 basic.cs.rutgers.edu
@@ -360,7 +371,6 @@ c211-i1.cs.rutgers.edu
 c211-i2.cs.rutgers.edu
 c211-i3.cs.rutgers.edu
 cd.cs.rutgers.edu
-command.cs.rutgers.edu
 composite.cs.rutgers.edu
 cp.cs.rutgers.edu
 cpp.cs.rutgers.edu
@@ -391,7 +401,6 @@ less.cs.rutgers.edu
 lisp.cs.rutgers.edu
 ls.cs.rutgers.edu
 man.cs.rutgers.edu
-mediator.cs.rutgers.edu
 mv.cs.rutgers.edu
 null.cs.rutgers.edu
 pascal.cs.rutgers.edu
@@ -407,7 +416,6 @@ state.cs.rutgers.edu
 strategy.cs.rutgers.edu
 template.cs.rutgers.edu
 top.cs.rutgers.edu
-utility.cs.rutgers.edu
 vi.cs.rutgers.edu
 visitor.cs.rutgers.edu
 
@@ -419,6 +427,7 @@ password = desktop
 limits = 40-ilab.conf
 setlimits = ilab-setlimits.sh
 killjob = killjob-ilab.sh
+homedir_umask = 077
 
 [studentvms]
 
@@ -454,6 +463,7 @@ cluster = ilab
 homedir = /ilab/users
 groupsuffix = ilab
 password = desktop
+homedir_umask = 077
 
 # the following groups are for the special hadoop.yml script
 # hosts listed here should also be in one of the main groups,
@@ -517,6 +527,9 @@ c237-d4.cs.rutgers.edu
 c239-d1.cs.rutgers.edu
 c239-d2.cs.rutgers.edu
 c239-d3.cs.rutgers.edu
+c239-d4.cs.rutgers.edu
+c239-d5.cs.rutgers.edu
+c213-d1.cs.rutgers.edu
 
 [coredev:vars]
 cluster = coredev
@@ -524,7 +537,7 @@ homedir = /devel/users
 groupsuffix = devel
 # slide-devel currently includes appstaff
 password = desktop
-
+homedir_umask = 077
 
 [special]
 classvm08.cs.rutgers.edu grouplist=coresysadmins,curateddata
@@ -566,6 +579,15 @@ net_autofs = true
 nfsserver = true
 domain=cs.rutgers.edu
 
+#this is for special faculty research machines that are kerberized
+[reslabs] 
+wiselab.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-wiselab  sudogroups=wiselab-admin
 
+[reslabs:vars]
+cluster = kerberized_labs
+groupsuffix = wiselab
+password = machineroom
+local_homedir = true
+mkhomedir = true
 
 

@@ -11,6 +11,7 @@ gssd_param_in_sysconf: no
 gssd_param_name_sysconf: 
 use_gssproxy: no
 krb5_ccache: /tmp/krb5cc_%{uid}
+nfsv4_broken: true
 has_ipaclient: no
 ssh_service: ssh
 idmapd_service: idmapd
