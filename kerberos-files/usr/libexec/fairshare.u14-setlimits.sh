@@ -1,8 +1,9 @@
 #!/bin/sh
 
 # set fair share per user. With systemd this is easy, but
-# this is for ubuntu 14, without systemd. We have to set
-# up the cgroups.
+# this is for ubuntu 14 and 16. In 14 we have to set up the
+# cgroups. In 16 they're set up by systemd, but we still have
+# to put the pids into the slice. In 18 it works like Centos 7
 
 export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/bin"
 

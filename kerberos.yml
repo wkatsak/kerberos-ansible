@@ -243,10 +243,12 @@
      when: ansible_service_mgr == "systemd"
      block:
        - copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/gssd-wrap.so" dest=/usr/libexec/gssd-wrap.so mode=0755 owner=root
+         notify:
+           - daemon and gssd
        - file: state=directory path=/etc/systemd/system/rpc-gssd.service.d/ mode=0755
        - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf" dest=/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf mode=0644 owner=root
          notify:
-          - daemon and gssd
+           - daemon and gssd
 
    - meta: flush_handlers
 

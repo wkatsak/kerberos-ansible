@@ -129,6 +129,9 @@
      command: ipa-client-install -U --ca-cert-file=/etc/krb5.i2chain.pem --no-ntp --no-sudo -k /etc/krb5.keytab.hold --domain={{ domain }}
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
+     notify:
+       - restart systemd-logind
+
 # add nfs service key if needed. do after ipa-client-install as that resets key table
    - name: see if nfs service key in key table
      when: nfsserver is defined and nfsserver == 'true'
@@ -171,6 +174,7 @@
      template: src="{{ playbook_dir }}/kerberos-files/etc/sssd/sssd.conf" dest=/etc/sssd/sssd.conf mode=0600 owner=root
      notify: 
      - restart sssd
+     - restart systemd-logind
    - meta: flush_handlers
 
 # kerberos.yml only works if the host is usably kerberized
@@ -290,7 +294,7 @@
        state: present
      notify:
        - restart nfs-kernel-server
-       - resrart idmapd
+       - restart idmapd
    - meta: flush_handlers
 
 # centos version is easier
@@ -320,7 +324,12 @@
     - name: restart nfs-kernel-server
       when: need_nfs_server_start
       service: name={{ nfs_server_name }} state=restarted
-    - name: resrart idmapd
+    - name: restart idmapd
       when: need_idmapd_start
       service: name={{ idmapd_service }} state=restarted
-
+# ubuntu 16 we have to restart systemd-login after installing sssd, or
+# pam_systemd will fail to create a new session. Don't know why, and 
+# it may not always happen
+    - name: restart systemd-logind
+      when: need_logind_restart is defined and need_logind_restart
+      service: name=systemd-logind state=restarted

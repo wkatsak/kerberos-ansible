@@ -20,7 +20,9 @@ falcon.cs.rutgers.edu
 c217-2.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 #c217-3.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 # ubuntu 16
-#c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
+c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu setlimits=fairshare-setlimits.sh
+# ubuntu 18
+c217-5.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu setlimits=fairshare-setlimits.sh
 # centos 7
 c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
 geneva.cs.rutgers.edu nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu grouplist=coresysadmins
@@ -192,6 +194,13 @@ groupsuffix = staff
 password = machineroom
 local_homedir = true
 
+[centos6]
+report.cs.rutgers.edu
+nomail.cs.rutgers.edu
+spamfilter.cs.rutgers.edu
+lawn-gw.rutgers.edu
+spock.cs.rutgers.edu 
+
 [apps-old]
 # fedora core. has old format for encrypted passwords
 # config in /etc/ldap.conf
@@ -209,7 +218,7 @@ local_homedir = true
 # config in /etc/nslcd.conf and /etc/pam_ldap.conf
 applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
 www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
-admin.videowall.cs.rutgers.edu grouplist=coresysadmins
+admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login
 
 [apps-old:vars]
 cluster = apps-old
@@ -250,8 +259,8 @@ dev16.cs.rutgers.edu grouplist=coresysadmins,appstaff
 cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
-dynrec.cs.rutgers.edu grouplist=coresysadmins,login-dynrec
-devdynrec.cs.rutgers.edu grouplist=coresysadmins,login-dynrec
+dynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
+devdynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
 
 [apps:vars]
 cluster = apps

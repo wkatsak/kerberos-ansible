@@ -35,5 +35,4 @@ pkinit_package: krb5-pkinit
 ldap_packages: nscd,ldap-utils,libnss-ldapd
 nslcd_service: nslcd
 nslcd_group: nslcd
-
-
+need_logind_restart: yes
