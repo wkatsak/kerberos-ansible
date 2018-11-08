@@ -118,6 +118,8 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #  clusterdata=true - add /common/clusterdata to common map
 #  noacctmessage="********* This is ilab.rutgers.edu. You probably want ilab.cs.rutgers.edu"
 #    specify message to give if user has no account on the system.      
+#  sssd_ldap=true - use ldap rather than ipa for sssd. for old systems where we care about
+#    users with one time password
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]
@@ -216,16 +218,17 @@ spock.cs.rutgers.edu
 # centos 6. password works. currently not doing anything else
 # uses nslcd for nsswitch, ldap for pam
 # config in /etc/nslcd.conf and /etc/pam_ldap.conf
-applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
-www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
-admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login
+
+# applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+# www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login sshstricthostname=yes
 
 [apps-old:vars]
 cluster = apps-old
 password = apps
 local_homedir = true
 nocommonmap = true
-homedir_umask = 077
+sssd_ldap=true
 
 [apps]
 #drupal login
@@ -394,9 +397,9 @@ grep.cs.rutgers.edu
 interpreter.cs.rutgers.edu
 java.cs.rutgers.edu
 # for fall, add nvidialimit=1 memorylimit="50331648K" (48 GB)
-ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
-ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
-ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K"
+ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
+ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
+ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
 data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true

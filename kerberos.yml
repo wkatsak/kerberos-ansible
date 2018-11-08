@@ -4,7 +4,8 @@
 # the script fails. But when you rerun it a start or restart is missed because
   # the thing that triggered it is already there.
 
-- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser reslabs
+- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser reslabs apps-old
+
   become: true
   environment:
     PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
@@ -55,15 +56,16 @@
    - name: install kgetcred
      copy: src="{{ playbook_dir }}/kerberos-files/usr/bin/kgetcred" dest=/usr/bin/kgetcred owner=root mode=04755
 
-   - name: temp hack for apps
-     when: cluster is defined and cluster == 'apps' and ansible_distribution_major_version == '7'
-     copy: src="{{ playbook_dir }}/kerberos-files/password-auth-ac-apps" dest=/etc/pam.d/password-auth-ac
+# not sure what this is about. will be overwitten by next section even if it was needed
+#   - name: temp hack for apps
+#     when: cluster is defined and cluster == 'apps' and ansible_distribution_major_version == '7'
+#     copy: src="{{ playbook_dir }}/kerberos-files/password-auth-ac-apps" dest=/etc/pam.d/password-auth-ac
 
    # limits. pam calls them, so the pam files have to be template driven
    # For the moment limits is supported for all OSs, but setlimits onlly for Centos 7
    # Setlimits could be implemented for SLES and the most recent Ubuntu, but not Ubuntu 14
    - name: pam files for centos 7
-     when: ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+     when: ansible_distribution == 'CentOS' 
      template: src="{{ playbook_dir }}/kerberos-files/etc/pam.d/{{ item }}" dest=/etc/pam.d/{{ item }} mode=0644 owner=root
      with_items: ['password-auth-ac', 'system-auth-ac']
 

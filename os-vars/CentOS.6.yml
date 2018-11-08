@@ -49,3 +49,4 @@ nslcd_group: ldap
 ssh_noknown2: true
 ssh_nonewkeys: true
 ssh_nohostbased: true
+pam_location: /usr/lib64/security/
