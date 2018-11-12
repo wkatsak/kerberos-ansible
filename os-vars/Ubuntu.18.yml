@@ -1,0 +1,40 @@
+---
+krb5_conf_includedir: no
+need_idmapd_start: no
+need_gssd_in_nfscommon: yes
+need_securenfs_in_nfs: no
+securenfs_in_nfs:
+need_gssd_start: yes
+need_nfs_start:	no
+gssd_param_in_script: no
+gssd_param_in_systemd_file: yes
+gssd_param_in_sysconf: no
+gssd_param_name_sysconf: 
+use_gssproxy: no
+krb5_ccache: KEYRING:persistent:%{uid}
+has_ipaclient: yes
+ssh_service: ssh
+idmapd_service: nfs-idmapd
+gssd_service: rpc-gssd
+has_kinit_n: yes
+has_myhostname: no
+sftp_file: /usr/lib/openssh/sftp-server
+has_pam_configs: yes
+ntp_name: ntp
+ntpdate_name: 
+chrony_name: chrony
+chrony_config: /etc/chrony/chrony.conf
+# systemd-timesyncd is set up by default. might as well keep it
+chrony_broken: yes
+need_nfs_server_start: yes
+nfs_server_name: nfs-kernel-server
+need_svcgssd_in_nks: yes
+nfs_server_package: nfs-kernel-server
+boot_packages: krb5-user,sssd,nfs-common,tcsh,freeipa-client,freeipa-admintools
+pkinit_package: krb5-pkinit
+ldap_packages: nscd,ldap-utils,libnss-ldapd
+nslcd_service: nslcd
+nslcd_group: nslcd
+need_logind_restart: yes
+
+
