@@ -275,8 +275,8 @@ dev16.cs.rutgers.edu grouplist=coresysadmins,appstaff
 cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
 csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
-dynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
-devdynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
+dynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec protected=
+devdynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec protected=
 
 [apps:vars]
 cluster = apps

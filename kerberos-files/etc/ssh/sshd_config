@@ -178,9 +178,11 @@ KbdInteractiveAuthentication yes
 AddressFamily inet
 
 {% if protected is defined and protected %}
-#             staff      services   config         report        spock
-match address 128.6.26.*,128.6.4.94,172.17.141.141,128.6.168.240,172.16.93.130
+#             staff      services   config         report        spock         lcsr VPN
+match address 128.6.26.*,128.6.4.94,172.17.141.141,128.6.168.240,172.16.93.130,172.16.52.176/28
 GSSAPIAuthentication yes
+
+
 
 {% endif %}
 
