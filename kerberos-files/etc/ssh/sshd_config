@@ -80,7 +80,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
 #KerberosUseKuserok yes
 
 # GSSAPI options
+{% if protected is defined and protected %}
+GSSAPIAuthentication no
+{% else %}
 GSSAPIAuthentication yes
+{% endif %}
 GSSAPICleanupCredentials no
 #GSSAPIStrictAcceptorCheck yes
 #GSSAPIKeyExchange no
@@ -173,13 +177,11 @@ KbdInteractiveAuthentication yes
 # without this -X fails if the system thinks it has IPv6
 AddressFamily inet
 
-{% if force_password is defined and force_password %}
-# require password all the time, except config system
-AuthenticationMethods keyboard-interactive
+{% if protected is defined and protected %}
+#             staff      services   config         report        spock
+match address 128.6.26.*,128.6.4.94,172.17.141.141,128.6.168.240,172.16.93.130
+GSSAPIAuthentication yes
 
-match address 172.17.141.141
-AuthenticationMethods gssapi-with-mic keyboard-interactive
-match all
 {% endif %}
 
 {% if rootsshmatch is defined %}

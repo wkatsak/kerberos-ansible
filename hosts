@@ -24,7 +24,7 @@ c217-4.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins 
 # ubuntu 18
 c217-5.cs.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu setlimits=fairshare-setlimits.sh
 # centos 7
-c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true
+c217.cs.rutgers.edu limits=40-ilab.conf setlimits=ilab-setlimits.sh nfsserver=true protected=true
 geneva.cs.rutgers.edu nfsserver=true local_homedir=true net_autofs=true domain=cs.rutgers.edu grouplist=coresysadmins
 c217-5.lcsr.rutgers.edu nfsserver=true local_homedir=true grouplist=coresysadmins net_autofs=true domain=cs.rutgers.edu
 
@@ -75,7 +75,6 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 
 # optional things:
 #  homedir=... set override  homedir in sssd.conf. if not specified, leave default
-#  force_password=yes. modifies sshd so must login with a password
 #  local_homedir=true. don't use pam_kmkhomedir. still need to define the location of the homedir
 #     using /etc/passwd if all users have entries, or homedir= for sss users. If this is not
 #     defined, pam_kmkhomedir is used and pam_mkhomedir is omitted (since it won't work for
@@ -120,11 +119,12 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #    specify message to give if user has no account on the system.      
 #  sssd_ldap=true - use ldap rather than ipa for sssd. for old systems where we care about
 #    users with one time password
+#  protected=yes - requires password except from staff hosts
 # Commented out hosts are in the cluster but we haven't used ansible to set them up yet
 
 [staff]
 farside.lcsr.rutgers.edu
-services.cs.rutgers.edu force_password=yes homedir=/home local_homedir=true
+services.cs.rutgers.edu homedir=/home local_homedir=true
 test-services.cs.rutgers.edu homedir=/home local_homedir=true
 c217.cs.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,sysadmins,c217-users homedir_umask=077
 chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
@@ -141,6 +141,7 @@ cluster = staff
 homedir = /staff/users
 groupsuffix = staff
 password = machineroom
+protected=yes
 
 [dresden]
 eagle.cs.rutgers.edu
@@ -195,6 +196,7 @@ sshpubkey = yes
 groupsuffix = staff
 password = machineroom
 local_homedir = true
+protected=yes
 
 [centos6]
 report.cs.rutgers.edu
@@ -207,21 +209,31 @@ spock.cs.rutgers.edu
 # fedora core. has old format for encrypted passwords
 # config in /etc/ldap.conf
 #    dhcp2.srv.lcsr.rutgers.edu grouplist=coresysadmins
+#      tcpwrappers
 #    www6.srv.lcsr.rutgers.edu grouplist=coresysadmins,appweb,appstaff
+#      tcpwrappers
 # centos 5. ansible doesn't work at all
 # config in /etc/ldap.conf   
 #    saguntum.cs.rutgers.edu grouplist=coresysadmins,appdba
+#       uses /etc/hosts.allow for access control
 #    cannae.cs.rutgers.edu grouplist=coresysadmins,appdba
+#       uses /etc/hosts.allow for access control
 #    nbackup.cs.rutgers.edu grouplist=coresysadmins
+#       uses /etc/hosts.allow for access control
 #    dev1.lcsr.rutgers.edu grouplist=coresysadmins
+#       down?
 #    videowall.rutgers.edu grouplist=coresysadmins
+#       uses tcpwrappers
 # centos 6. password works. currently not doing anything else
 # uses nslcd for nsswitch, ldap for pam
 # config in /etc/nslcd.conf and /etc/pam_ldap.conf
 
 # applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
+#   access restricted by hosts.allow
 # www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
-admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login sshstricthostname=yes
+#   access restricted by hosts.allow
+admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login
+#   access restricted by hosts.allow
 
 [apps-old:vars]
 cluster = apps-old
@@ -229,6 +241,7 @@ password = apps
 local_homedir = true
 nocommonmap = true
 sssd_ldap=true
+protected=yes
 
 [apps]
 #drupal login
@@ -273,6 +286,7 @@ sshpubkey = yes
 sss_try_first = yes
 nocommonmap = true
 homedir_umask = 077
+protected=yes
 
 [faculty]
 atanasoff.rutgers.edu 
