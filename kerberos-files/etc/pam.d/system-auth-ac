@@ -38,6 +38,9 @@ password    required      pam_deny.so
 
 session     optional      pam_keyinit.so revoke
 session     required      pam_limits.so
+{% if ansible_fqdn == 'jupyter.cs.rutgers.edu' %}
+session     [success=1 default=ignore] pam_succeed_if.so service in jupyter quiet use_uid
+{% endif %}
 -session     optional      pam_systemd.so
 session     [success=1 default=ignore] pam_succeed_if.so service in crond quiet use_uid
 session     required      pam_unix.so
@@ -49,9 +52,12 @@ session     optional      {{ pam_location|default('') }}pam_kmkhomedir.so {{ 'um
 session     optional      pam_mkhomedir.so {{ 'umask=' ~ homedir_umask if homedir_umask is defined else '' }}
 {% endif %}
 {% if nocommonmap is not defined or not nocommonmap %}
-session     optional      {{ pam_location|default('') }}pam_kmkhomedir.so dir=/common/users/%u
+session     optional      {{ pam_location|default('') }}pam_kmkhomedir.so dir=/common/users/%u donefile=.cusmkdirdone
 {% endif %}
 {% if setlimits is defined %}
+{% if ansible_fqdn == 'jupyter.cs.rutgers.edu' %}
+session     [success=1 default=ignore] pam_succeed_if.so service in jupyter quiet use_uid
+{% endif %}
 session     optional      pam_exec.so /usr/libexec/setlimits.sh 
 {% endif %}
 {% if clusterdata is defined %}

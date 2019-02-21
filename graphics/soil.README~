@@ -1,0 +1,4 @@
+sudo yum install mesa-libGL-devel
+cd soil/projects/makefile/
+mkdir obj
+make

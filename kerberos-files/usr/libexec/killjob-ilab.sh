@@ -15,6 +15,13 @@ for s in `find /sys/fs/cgroup/cpu,cpuacct/ -name session'*'` ; do
      SESSION=${SESSION%.scope}
      USER=`loginctl show-session $SESSION --property=Name | cut -d= -f2`
      USERID=`loginctl show-session $SESSION --property=User | cut -d= -f2`
+     # remove blanks, in case leading or trailing
+     USER=${USER// /}
+     USERID=${USERID// /}
+     # if no such user, not safe to continue
+     if ! getent passwd "$USER" >/dev/null; then
+        continue
+     fi
      # don't do this for system users
      if getent -s files passwd "$USER" >/dev/null; then
         continue
@@ -39,7 +46,6 @@ for s in `find /sys/fs/cgroup/cpu,cpuacct/ -name session'*'` ; do
         fi
      fi
      # if no limit declared; kill it
-
      logger -t killjob -p local1.info killing session "$SESSION" for user "$USER" usage "$USAGE"
 
      loginctl terminate-session $SESSION

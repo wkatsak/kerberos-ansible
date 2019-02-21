@@ -30,7 +30,7 @@ need_nfs_server_start: yes
 nfs_server_name: nfs-kernel-server
 need_svcgssd_in_nks: yes
 nfs_server_package: nfs-kernel-server
-boot_packages: krb5-user,sssd,nfs-common,tcsh,freeipa-client,freeipa-admintools
+boot_packages: krb5-user,sssd,nfs-common,tcsh,zsh,freeipa-client,freeipa-admintools
 pkinit_package: krb5-pkinit
 ldap_packages: nscd,ldap-utils,libnss-ldapd
 nslcd_service: nslcd

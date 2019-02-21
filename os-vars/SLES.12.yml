@@ -36,7 +36,7 @@ chrony_config: /etc/chrony.conf
 need_nfs_server_start: no
 nfs_server_name: nfs-kernel-server
 need_svcgssd_in_nks: no
-boot_packages: sssd,krb5-client,sssd-ipa,sssd-tools,chrony,sssd-proxy
+boot_packages: sssd,krb5-client,sssd-ipa,sssd-tools,chrony,sssd-proxy,zsh,tcsh
 pkinit_package: krb5-plugin-preauth-pkinit
 ldap_packages: nss_ldap
 ldap_src: /etc/ldap.conf.SLES.12

@@ -1,0 +1,70 @@
+---
+
+# I do flush handlers whenever I trigger a handler. I've had issues where
+# the script fails. But when you rerun it a start or restart is missed because
+  # the thing that triggered it is already there.
+
+- hosts: testhosts faculty research staff ilab grad 
+
+  become: true
+  environment:
+    PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
+  tasks:
+# currently this is only tested on centos 7
+   - fail:
+     when: ansible_distribution != 'CentOS' or ansible_distribution_major_version != '7'
+
+   - name: required directories
+     block:
+       - file: path="/usr/local/bin" state=directory mode=755 owner=root           
+       - file: path="/var/opt" state=directory mode=755 owner=root
+       - file: path="/opt" state=directory mode=755 owner=root
+
+# do a google search for "maya2018 dependencies centos 7" Michael Rochefort 
+# has generated scripts for maya2018 and maya2019. I've transcribed them
+# into ansible
+   - name: dependencies
+     package: name=mesa-libGLw,mesa-libGLU,libXp,libXpm,libXmu,libXt,libXi,libXext,libX11,libXinerama,libXau,libxcb,libXcomposite,gamin,audiofile,audiofile-devel,e2fsprogs-libs,glibc,zlib,libSM,libICE,openssl098e,tcsh,pulseaudio-libs,libxslt,alsa-lib,xorg-x11-fonts-ISO8859-1-100dpi,xorg-x11-fonts-ISO8859-1-75dpi,liberation-mono-fonts,liberation-fonts-common,liberation-sans-fonts,liberation-serif-fonts,libpng12,libtiff
+
+# do this as command because libtiff.so.5 may already exist. If so we want the
+# command to fail, not replace it. The native symlink options in ansible will replace it
+   - name: symlink libtiff
+     command: ln -s libtiff.so.5 /usr/lib64/libtiff.so.3 warn=no
+     failed_when: false
+     register: tiff_result
+     changed_when: "tiff_result.rc == 0"
+
+   - name: autodesk symlinks
+     block:
+      - symlink: src=/koko/system/var-opt-Autodesk dest=/var/opt/Autodesk
+      - symlink: src=/koko/system/opt-Autodesk dest=/opt/Autodesk
+      - symlink: src=/koko/system/autodesk dest=/usr/autodesk
+      - symlink: src=/koko/system/var-flexlm dest=/var/flexlm
+
+   - name: pixas symlink
+     symlink: src=/koko/system/pixar dest=/opt/pixar
+
+   - name: maya commands
+     block:
+       - symlink: src=/usr/autodesk/maya/bin/maya dest=/usr/local/bin/maya
+       - symlink: src=/usr/autodesk/maya/bin/Render dest=/usr/local/bin/Render
+       - symlink: src=/usr/autodesk/maya/bin/imgcvt dest=/usr/local/bin/imgcvt
+       - symlink: src=/usr/autodesk/maya/bin/fcheck dest=/usr/local/bin/fcheck
+
+   - name: environment variables
+     block:
+      - copy: src="{{ playbook_dir }}/kerberos-files/etc/profile.d/graphics.sh" dest=/etc/profile.d/graphics.sh mode=644 owner=root
+      - copy: src="{{ playbook_dir }}/kerberos-files/etc/profile.d/graphics.csh" dest=/etc/profile.d/graphics.csh mode=644 owner=root
+
+# for opengl programming
+
+   - name: standard libraries
+     yum: name=glew-devel,glfw-devel,glm-devel state=installed enablerepo=epel
+
+   # look at graphics/soil.README for build instructions
+   - name: SOIL
+     block:
+      - copy: src="{{ playbook_dir }}/graphics/soil/lib/libSOIL.a" dest=/usr/lib64/libSOIL.a
+      - file: path="/usr/include/SOIL" state=directory mode=755 owner=root           
+      - copy: src="{{ playbook_dir }}/graphics/soil/src/SOIL.h" dest=/usr/include/SOIL/SOIL.h
+

@@ -1,0 +1,6 @@
+sudo yum install mesa-libGL-devel
+cd soil/projects/makefile/
+mkdir obj
+make
+
+the ansible script will take libSOIL.a and SOIL.h directly from here

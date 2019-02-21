@@ -132,6 +132,7 @@ chipa1.sas.rutgers.edu sshpubkey=yes local_homedir=true homedir=/home
 #new-farside.rutgers.edu
 pleiades.lcsr.rutgers.edu
 klinzhai.lcsr.rutgers.edu
+camaro.lcsr.rutgers.edu
 temp.lcsr.rutgers.edu nfsserver=true
 backup.lcsr.rutgers.edu nfsserver=true
 hanz.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
@@ -228,12 +229,10 @@ spock.cs.rutgers.edu
 # uses nslcd for nsswitch, ldap for pam
 # config in /etc/nslcd.conf and /etc/pam_ldap.conf
 
-# applications.dimacs.rutgers.edu grouplist=coresysadmins,appstaff,appweb
-#   access restricted by hosts.allow
 # www8.srv.lcsr.rutgers.edu grouplist=coresysadmins,appstaff,appweb
 #   access restricted by hosts.allow
-admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login
-#   access restricted by hosts.allow
+admin.videowall.cs.rutgers.edu grouplist=coresysadmins,videowall-login protected=true
+#   don't need hosts.allow
 
 [apps-old:vars]
 cluster = apps-old
@@ -272,11 +271,14 @@ dev13.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev14.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev15.cs.rutgers.edu grouplist=coresysadmins,appstaff
 dev16.cs.rutgers.edu grouplist=coresysadmins,appstaff
-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
-dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated
-csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat
+cds.cs.rutgers.edu grouplist=coresysadmins,login-curated protected=
+dev-cds.cs.rutgers.edu grouplist=coresysadmins,login-curated protected=
+csedstat.cs.rutgers.edu grouplist=coresysadmins,login-csedstat protected=
 dynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec protected=
 devdynrec.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec protected=
+dev18.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
+dev19.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
+dev20.cs.rutgers.edu grouplist=coresysadmins,appstaff,login-dynrec
 
 [apps:vars]
 cluster = apps
@@ -299,6 +301,7 @@ klaatu.rutgers.edu
 porthos.cs.rutgers.edu password=machineroom sshstricthostname=yes
 h268-f1.cs.rutgers.edu
 stefi.rutgers.edu
+c310-f1.cs.rutgers.edu
 
 [faculty:vars]
 cluster = faculty
@@ -313,7 +316,6 @@ homedir_umask = 077
 aurora.cs.rutgers.edu
 # bloustein.cs.rutgers.edu
 gryphon.rutgers.edu
-# secrets.rutgers.edu
 grande.rutgers.edu
 tall1.rutgers.edu
 tall2.rutgers.edu
@@ -414,12 +416,14 @@ java.cs.rutgers.edu
 ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
 ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
 ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
+#ilabx.cs.rutgers.edu grouplist=coresysadmins,login-ilabx sudogroups=slide-ilab
 data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}" nocommonmap=true
 data-services2.cs.rutgers.edu rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true memorylimit="50331648K"
 data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
+data-services4.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab nocommonmap=true local_homedir=true homedir=/home
 jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true memorylimit="50331648K"
 
 kill.cs.rutgers.edu
@@ -511,6 +515,7 @@ datahost = true
 ilab1.cs.rutgers.edu 
 ilab2.cs.rutgers.edu 
 ilab3.cs.rutgers.edu 
+ilabx.cs.rutgers.edu 
 
 [ilab-servers:vars]
 ilabserver = true
@@ -596,6 +601,7 @@ net_autofs = true
 [researchuser]
 markov.cs.rutgers.edu
 panic-master.cs.rutgers.edu grouplist=panic-users,coresysadmins sudogroups=panic-admins,coresysadmins
+# secrets.rutgers.edu grouplist=login-secrets
 
 [researchuser:vars]
 cluster = researchuser
@@ -605,11 +611,12 @@ net_autofs = true
 nfsserver = true
 domain=cs.rutgers.edu
 
+
 #this is for special faculty research machines that are kerberized
-[reslabs] 
+[wiselab] 
 wiselab.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-wiselab  sudogroups=wiselab-admin
 
-[reslabs:vars]
+[wiselab:vars]
 cluster = kerberized_labs
 groupsuffix = wiselab
 password = machineroom
@@ -617,3 +624,62 @@ local_homedir = true
 mkhomedir = true
 
 
+#pingli's lab -- centos linux machine - no sudogroup. if has sudogroup, we dont manage.
+[lilab]
+saturn.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab
+earth.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab
+mars.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab
+neptune.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab
+mercury.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab
+#galaxy.cs.rutgers.edu grouplist=coresysadmins,hack-accounts,login-lilab password = machineroom
+
+[lilab:vars]
+cluster = lilab
+homedir = /lilab/users
+pgroupsuffix = lilab
+password = desktop
+
+[maya-hosts]
+ilab1.cs.rutgers.edu
+ilab2.cs.rutgers.edu
+ilab3.cs.rutgers.edu
+cd.cs.rutgers.edu
+cp.cs.rutgers.edu
+grep.cs.rutgers.edu
+kill.cs.rutgers.edu
+less.cs.rutgers.edu
+ls.cs.rutgers.edu
+man.cs.rutgers.edu
+pwd.cs.rutgers.edu
+rm.cs.rutgers.edu
+top.cs.rutgers.edu
+vi.cs.rutgers.edu
+geneva.cs.rutgers.edu
+
+[ilabnew]
+assembly.cs.rutgers.edu
+basic.cs.rutgers.edu
+batch.cs.rutgers.edu
+cpp.cs.rutgers.edu
+java.cs.rutgers.edu
+lisp.cs.rutgers.edu
+pascal.cs.rutgers.edu
+perl.cs.rutgers.edu
+prolog.cs.rutgers.edu
+python.cs.rutgers.edu
+builder.cs.rutgers.edu
+composite.cs.rutgers.edu
+decorator.cs.rutgers.edu
+design.cs.rutgers.edu
+facade.cs.rutgers.edu
+factory.cs.rutgers.edu
+flyweight.cs.rutgers.edu
+interpreter.cs.rutgers.edu
+null.cs.rutgers.edu
+patterns.cs.rutgers.edu
+singleton.cs.rutgers.edu
+specification.cs.rutgers.edu
+state.cs.rutgers.edu
+strategy.cs.rutgers.edu
+template.cs.rutgers.edu
+visitor.cs.rutgers.edu

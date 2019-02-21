@@ -6,7 +6,18 @@ echo For specifics of what is in each session, use '"sessions -l"'
 echo
 fi
 
-for c in /sys/fs/cgroup/cpu,cpuacct/user.slice/user-`id -u`.slice/session*scope; do
+UIDNUM=`id -u`
+if ! test -e "/sys/fs/cgroup/cpu,cpuacct/user.slice/user-$UIDNUM.slice" ; then
+  echo Sorry, there are no sessions for `id -urn`.
+  exit 0
+fi
+
+SESSIONS=`find /sys/fs/cgroup/cpu,cpuacct/user.slice/user-$UIDNUM.slice -name 'session*scope'`
+if test -z "$SESSIONS"; then
+  echo Sorry, there are no sessions for `id -urn`.
+  exit 0
+fi
+for c in /sys/fs/cgroup/cpu,cpuacct/user.slice/user-$UIDNUM.slice/session*scope; do
  ID=`echo $c|sed -e 's/.sys.fs.cgroup.cpu,cpuacct.user.slice.user-[0-9]*.slice.session-//' -e 's/.scope//'`
 
  if test "$1" = '-l'; then
@@ -29,6 +40,13 @@ for c in /sys/fs/cgroup/cpu,cpuacct/user.slice/user-`id -u`.slice/session*scope;
  fi
 
 done
+
+
+BYTES=`cat /sys/fs/cgroup/memory/user.slice/user-$UIDNUM.slice/memory.memsw.usage_in_bytes`
+OUT=`awk "BEGIN{b = $BYTES; out = b \" B\"; k = b / 1024; if (k > 1) {out = k \" KB\"}; m = b / (1024 * 1024); if (m > 1) {out = m \" MB\"}; g= b / (1024 * 1024 * 1024); if (g > 1) {out = g \" GB\"}; print out}"`
+
+echo "Total memory for all sessions: $OUT"
+
 
 
 
