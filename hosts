@@ -169,7 +169,7 @@ titania.cs.rutgers.edu groupsuffix=dresden3
 cluster = dresden
 groupsuffix = dresden1
 password = machineroom
-local_homedir = true
+homedir = /dresden/users
 mkhomedir = true
 setlimits = fairshare.u14-setlimits.sh
 
@@ -560,7 +560,9 @@ c239-d2.cs.rutgers.edu
 c239-d3.cs.rutgers.edu
 c239-d4.cs.rutgers.edu
 c239-d5.cs.rutgers.edu
+c239-d6.cs.rutgers.edu
 c213-d1.cs.rutgers.edu
+c213-d2.cs.rutgers.edu
 
 [coredev:vars]
 cluster = coredev
