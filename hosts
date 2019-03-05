@@ -135,7 +135,7 @@ klinzhai.lcsr.rutgers.edu
 camaro.lcsr.rutgers.edu
 temp.lcsr.rutgers.edu nfsserver=true
 backup.lcsr.rutgers.edu nfsserver=true
-hanz.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins
+hanz.rutgers.edu homedir=/home local_homedir=true grouplist=coresysadmins,hack-accounts homedir_umask=077
 
 [staff:vars]
 cluster = staff
