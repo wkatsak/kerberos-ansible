@@ -98,6 +98,9 @@ chipa1.sas.rutgers.edu idfiles=true nfsserver=true net_autofs=true
 #     from kerberos-files/usr/libexec.
 #     this is used to set limits with cgroups, e.g. total memory/user or CPU share/user
 #     this script is likely to be os- and cluster-specific, so be careful
+#     ilab-setlimits works on centos 7 and ubuntu 18
+#     fairshare-setlimits works on centos 7 and ubuntu 14,16,18. It is intended
+#       to work on all versions, but probably will fail on centos 6.
 #  killjob=file, put file into /usr/libexec/killjob.sh and make cron run it hourly
 #     this is intended to kill bad jobs
 #     the specific script is likely to be cluster-specific, and maybe os-specific
@@ -165,13 +168,16 @@ mister.cs.rutgers.edu groupsuffix=dresden3
 mab.cs.rutgers.edu groupsuffix=dresden3
 titania.cs.rutgers.edu groupsuffix=dresden3
 
+lerna.cs.rutgers.edu   groupsuffix=dresden4
+
 [dresden:vars]
 cluster = dresden
 groupsuffix = dresden1
 password = machineroom
 homedir = /dresden/users
 mkhomedir = true
-setlimits = fairshare.u14-setlimits.sh
+setlimits = fairshare-setlimits.sh
+
 
 [services]
 netboot.lcsr.rutgers.edu
@@ -315,7 +321,7 @@ homedir_umask = 077
 # acmi.cs.rutgers.edu
 aurora.cs.rutgers.edu
 # bloustein.cs.rutgers.edu
-gryphon.rutgers.edu
+#gryphon.rutgers.edu
 grande.rutgers.edu
 tall1.rutgers.edu
 tall2.rutgers.edu
@@ -333,6 +339,7 @@ homedir_umask = 077
 [grad]
 c211-1.cs.rutgers.edu
 c211-2.cs.rutgers.edu
+c211-3.cs.rutgers.edu
 c344-1.cs.rutgers.edu
 c346-1.cs.rutgers.edu
 h202-1.cs.rutgers.edu
@@ -416,15 +423,28 @@ java.cs.rutgers.edu
 ilab1.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
 ilab2.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
 ilab3.cs.rutgers.edu nvidialimit=4 memorylimit="50331648K" sshstricthostname=yes
-#ilabx.cs.rutgers.edu grouplist=coresysadmins,login-ilabx sudogroups=slide-ilab
+ilabx.cs.rutgers.edu grouplist=coresysadmins,login-ilabx sudogroups=slide-ilab
 data1.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data2.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
 data3.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" memorylimit="50331648K" clusterdata=true
+
+data4.cs.rutgers.edu nokrb5conf=true rootsshmatch="host data-services5.cs.rutgers.edu" clusterdata=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data5.cs.rutgers.edu nokrb5conf=true rootsshmatch="host data-services5.cs.rutgers.edu" clusterdata=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data6.cs.rutgers.edu nokrb5conf=true rootsshmatch="host data-services5.cs.rutgers.edu" clusterdata=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data7.cs.rutgers.edu nokrb5conf=true rootsshmatch="host data-services5.cs.rutgers.edu" clusterdata=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data8.cs.rutgers.edu nokrb5conf=true rootsshmatch="host data-services5.cs.rutgers.edu" clusterdata=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+
 data-services1.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" krb5_ccache_override="/tmp/krb5cc_%{uid}" nocommonmap=true
 data-services2.cs.rutgers.edu rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true memorylimit="50331648K"
 data-services3.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" nokrb5conf=true nocommonmap=true
-data-services4.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab nocommonmap=true local_homedir=true homedir=/home
-jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true memorylimit="50331648K"
+# needs sshpubkey because the start-dfs script works by sshing to itself
+data-services4.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab nocommonmap=true local_homedir=true homedir=/home sshpubkey=yes
+
+data-services5.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host data-services5.cs.rutgers.edu" nokrb5conf=true nocommonmap=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data-services6.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host data-services5.cs.rutgers.edu" nokrb5conf=true nocommonmap=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+data-services7.cs.rutgers.edu grouplist=coresysadmins,slide-ilab,hack-accounts sudogroups=slide-ilab rootsshmatch="host data-services5.cs.rutgers.edu" nokrb5conf=true nocommonmap=true sssd_ccache_override="/tmp/krb5cc_%U" hdpversion=2
+
+old-jupyter.cs.rutgers.edu nokrb5conf=true rootsshmatch="host ilab1.cs.rutgers.edu,data-services1.cs.rutgers.edu" clusterdata=true memorylimit="50331648K"
 
 kill.cs.rutgers.edu
 less.cs.rutgers.edu
@@ -503,13 +523,32 @@ homedir_umask = 077
 data1.cs.rutgers.edu
 data2.cs.rutgers.edu 
 data3.cs.rutgers.edu 
+data4.cs.rutgers.edu 
+data5.cs.rutgers.edu 
+data6.cs.rutgers.edu 
+data7.cs.rutgers.edu 
+data8.cs.rutgers.edu 
 data-services1.cs.rutgers.edu 
 data-services2.cs.rutgers.edu 
 data-services3.cs.rutgers.edu 
-jupyter.cs.rutgers.edu
+data-services5.cs.rutgers.edu 
+data-services6.cs.rutgers.edu 
+data-services7.cs.rutgers.edu 
+old-jupyter.cs.rutgers.edu
 
 [ilab-data:vars]
 datahost = true
+
+# these have ansible manage the users
+[ilab-data-users]
+data4.cs.rutgers.edu 
+data5.cs.rutgers.edu 
+data6.cs.rutgers.edu 
+data7.cs.rutgers.edu 
+data8.cs.rutgers.edu 
+data-services5.cs.rutgers.edu 
+data-services6.cs.rutgers.edu 
+data-services7.cs.rutgers.edu 
 
 [ilab-servers]
 ilab1.cs.rutgers.edu 
@@ -561,8 +600,10 @@ c239-d3.cs.rutgers.edu
 c239-d4.cs.rutgers.edu
 c239-d5.cs.rutgers.edu
 c239-d6.cs.rutgers.edu
+c239-d7.cs.rutgers.edu
+c239-d8.cs.rutgers.edu
 c213-d1.cs.rutgers.edu
-c213-d2.cs.rutgers.edu
+#c213-d2.cs.rutgers.edu
 
 [coredev:vars]
 cluster = coredev

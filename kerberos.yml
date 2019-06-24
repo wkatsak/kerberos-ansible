@@ -302,7 +302,7 @@
     - name: restart sssd
       service: name=sssd state=restarted enabled=yes
     - name: rebuild pam
-      command: pam-auth-update --package
+      command: pam-auth-update --package --force
     - name: restart sshd
       service: name={{ 'ssh' if ansible_distribution == 'Ubuntu' else 'sshd' }} state=restarted enabled=yes
     - name: restart chrony

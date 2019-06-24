@@ -26,6 +26,10 @@ for s in `find /sys/fs/cgroup/cpu,cpuacct/ -name session'*'` ; do
      if getent -s files passwd "$USER" >/dev/null; then
         continue
      fi
+     if (groups "$USER" | grep '\bno-job-limit\b' >/dev/null) ; then
+        continue
+     fi
+
      # if they set a limit, honor it
      if test -e /var/run/user/$USERID/LongjobLimit; then 
         LIMIT=`cat /var/run/user/$USERID/LongjobLimit`
@@ -56,7 +60,7 @@ Your job has used more than 24 hours of CPU time, and you have not
 requested more time. We have terminated it.
 
 If you need to run jobs longer than 24 CPU hours, see
-url:www.cs.rutgers.edu/resources/limitation-enforced-on-cs-linux-machines
+url:resources.cs.rutgers.edu/docs/limitation-enforced-on-cs-linux-machines
 
 $JOB          
 EOF

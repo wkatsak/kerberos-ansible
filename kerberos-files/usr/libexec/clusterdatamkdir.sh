@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# prevent infinite recursion
+if test "$PAM_SERVICE" = "sudo" -o "$PAM_SERVICE" = "sudo-i"; then
+  exit 0
+fi
+
 HOMEDIR=`getent passwd $PAM_USER | cut -d: -f6`
 if sudo -u $PAM_USER test -e "$HOMEDIR"/.ccdmkdirdone; then
   exit 0

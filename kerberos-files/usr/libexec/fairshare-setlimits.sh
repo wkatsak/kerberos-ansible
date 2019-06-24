@@ -1,3 +1,6 @@
+{% if ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '14' %}
+{% include 'fairshare.u14-setlimits.sh' %}
+{% else %}
 #!/bin/sh
 
 export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/bin"
@@ -28,3 +31,4 @@ if ! getent -s files passwd "$PAM_USER"; then
 fi
 
 exit 0
+{% endif %}
