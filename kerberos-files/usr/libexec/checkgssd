@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export PATH="/sbin:/bin:/usr/sbin:/usr/bin"
+GSSDPROC=$(pgrep -f /usr/sbin/rpc.gssd) || exit $?
+LINES=$(lsof -p $GSSDPROC | wc -l) || exit $?
+
+if test "$LINES" -gt 150 ; then
+  logger checkgssd: more than 150 files open for gssd: restart
+  systemctl restart rpc-gssd.service
+fi
+
+

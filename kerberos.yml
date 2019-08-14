@@ -4,7 +4,7 @@
 # the script fails. But when you rerun it a start or restart is missed because
   # the thing that triggered it is already there.
 
-- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser wiselab lilab  apps-old localhost
+- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser wiselab lilab  mscs appsold localhost
 
   become: true
   environment:
@@ -123,13 +123,13 @@
 
 # install pkinit if possible
    - name: install pkinit
-     when: has_kinit_n
-     package: name="{{ pkinit_package }}" state=installed
+     when: has_kinit_n is defined and has_kinit_n|bool
+     package: name="{{ pkinit_package }}" state=present
 
 # install chrony
    - name: install chrony
      when: chrony_broken is not defined
-     package: name=chrony state=installed
+     package: name=chrony state=present
 
 # skinit is slightly different depending upon whether kinit -n works
    - name: skinit
@@ -158,12 +158,23 @@
      template: src="{{ playbook_dir }}/kerberos-files/etc/sssd/sssd.conf" dest=/etc/sssd/sssd.conf mode=0600 owner=root
      notify: 
      - restart sssd
+
    - meta: flush_handlers
+
+   - name: sssd timing fix for ubuntu 18
+     when: need_sssd_timing_fix is defined and need_sssd_timing_fix
+     block:
+       - file: path="/etc/systemd/system/sssd.service.d" state=directory mode=0755 owner=root
+       - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/sssd.service.d/override.conf" dest=/etc/systemd/system/sssd.service.d/override.conf mode=0644 owner=root
+
+   - name: sssd remove timing fix if not ubuntu 18, so we don't keep it for ubuntu gt 18
+     when: not ( need_sssd_timing_fix is defined and need_sssd_timing_fix )
+     file: path="/etc/systemd/system/sssd.service.d" state=absent
 
 # for idfiles=true, sssd has to get id from /etc/passwd. So we need to add nslcd to decode groups
    - name: if idfiles, install nss_ldap packages
      when: idfiles is defined and idfiles
-     package: name="{{ ldap_packages }}" state=installed
+     package: name="{{ ldap_packages }}" state=present
 
    - name: if idfiles, configure nss_ldap
      when: idfiles is defined and idfiles
@@ -199,7 +210,7 @@
 # so we can rebuild the pam files using their configurator. This is the file with our changes.
 # it's separate because we have to call the configurator if it changes
    - name: rukerb pam config
-     when: has_pam_configs
+     when: has_pam_configs|bool
      template: src="{{ playbook_dir }}/kerberos-files/usr/share/pam-configs/rukerb" dest=/usr/share/pam-configs/rukerb
      notify:
      - rebuild pam
@@ -240,17 +251,28 @@
 
 # this fixes a bug in rpc.gssd. If the user has multiple credential caches, e.g. user and user-admin
 # rpc.gssd returns the currently selected one. We actually want to return the one that matches the
-# username. This is a simple fix, but I'd rather use a loadable library than modify source.
+# username. I created a ccselect plugin that selects the right principal. It's /usr/lib/ccselect_nfs.so.
+# Normally I'd define it in the [plugins] section of /etc/krb5.conf. However it confuses sssd. Since
+# only rpc.gssd really needs it, I create an addon systemd config file for rpc-gssd that defines
+# KRB5_CONFIG to include both the normal krb5.conf and a file pointing to the plugin.
    - name: wrap rpc.gssd to make sure it gets the right principal
      when: ansible_service_mgr == "systemd"
      block:
-       - copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/gssd-wrap.so" dest=/usr/libexec/gssd-wrap.so mode=0755 owner=root
+       - file: path=/usr/libexec/gssd-wrap.so state=absent
+       - file: path=/etc/systemd/system/rpc-gssd.service.d state=directory mode=0755 owner=root
+       - file: path=/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf state=absent
+       - copy: src="{{ playbook_dir }}/kerberos-files/etc/krb5.conf.gssd" dest=/etc/krb5.conf.gssd mode=0644 owner=root
+       - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/gss-krb.conf" dest=/etc/systemd/system/rpc-gssd.service.d/gss-krb.conf mode=0644 owner=root
          notify:
            - daemon and gssd
-       - file: state=directory path=/etc/systemd/system/rpc-gssd.service.d/ mode=0755
-       - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf" dest=/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf mode=0644 owner=root
-         notify:
-           - daemon and gssd
+     
+#       - copy: src="{{ playbook_dir }}/kerberos-files/usr/libexec/gssd-wrap.so" dest=/usr/libexec/gssd-wrap.so mode=0755 owner=root
+#         notify:
+#           - daemon and gssd
+#       - file: state=directory path=/etc/systemd/system/rpc-gssd.service.d/ mode=0755
+#       - copy: src="{{ playbook_dir }}/kerberos-files/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf" dest=/etc/systemd/system/rpc-gssd.service.d/gssd-wrap.conf mode=0644 owner=root
+#        notify:
+#           - daemon and gssd
 
    - meta: flush_handlers
 
@@ -259,7 +281,7 @@
 
    - name: if autofs requested make sure it's installed
      when: (net_autofs is defined and net_autofs) or (nocommonmap is not defined or not nocommonmap)
-     package: name="autofs" state=installed
+     package: name="autofs" state=present
 
    - name: comment out /net in auto.master if present
      when: net_autofs is defined and net_autofs

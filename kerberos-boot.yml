@@ -12,7 +12,7 @@
 #   normally a dictionary. Try ansible-playbook -v to see what is actually put in the variable
 #   Register is needed to get the data for the changed_when 
 
-- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser localhost wiselab lilab apps-old localhost
+- hosts: testhosts dresden faculty research staff services ilab studentvms grad apps coredev special researchuser localhost wiselab lilab mscs appsold localhost
   become: true
   environment:
     PATH: "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin"
@@ -32,7 +32,7 @@
 # verify we have fqdn
 
    - name: verify host uses fqdn
-     when: not '.' in ansible_fqdn
+     when: not '.' in ansible_nodename
      fail: msg="hostname must be full qualified domain name"
 
    - name: load config for distribution
@@ -42,7 +42,7 @@
 # the script works better if something fails and I have to redo it
 
    - name: install packages
-     package: name={{ boot_packages }} state=installed
+     package: name={{ boot_packages }} state=present
 
 # will remove krb5.conf and recreate /etc/ssh/ssh_host* if keytab is for the wrong host
 # presumably a VM got copied or a host got renamed
@@ -113,7 +113,7 @@
 
 # with ipa client
    - name: prepare for sssd
-     when: has_ipaclient
+     when: has_ipaclient|bool
      command: mv /etc/krb5.keytab /etc/krb5.keytab.hold
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index     
@@ -125,7 +125,7 @@
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index     
    - name: set up sssd
-     when: has_ipaclient
+     when: has_ipaclient|bool
      command: ipa-client-install -U --ca-cert-file=/etc/krb5.i2chain.pem --no-ntp --no-sudo -k /etc/krb5.keytab.hold --domain={{ domain }}
      args:
        creates: /var/lib/ipa-client/sysrestore/sysrestore.index
@@ -148,7 +148,7 @@
 # key. We only need this is ipa-client-install has lost it. So it will only be done on systems that
 # actually have ipa-getkeytab.
    - name: add nfs service key if needed, pull mode
-     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and islocal and has_ipaclient
+     when: nfsserver is defined and nfsserver == 'true' and 'nfs/' not in checknfskey2.stdout and islocal and has_ipaclient|bool
      shell: kinit -k -t /etc/krb5.keytab host/{{ ansible_fqdn }}; /usr/sbin/ipa-getkeytab -p nfs/{{ ansible_fqdn }} -k /etc/krb5.keytab; kdestroy
 
 # add NFS key push mode. this should always work
@@ -168,7 +168,7 @@
 
 # without ipa client
    - name: krb5.conf
-     when: not has_ipaclient
+     when: not has_ipaclient|bool
      template: src="{{ playbook_dir }}/kerberos-files/etc/krb5.conf" dest=/etc/krb5.conf owner=root mode=0644
    - name: /etc/sssd/sssd.conf
      template: src="{{ playbook_dir }}/kerberos-files/etc/sssd/sssd.conf" dest=/etc/sssd/sssd.conf mode=0600 owner=root
@@ -218,14 +218,14 @@
 
 # centos starts it if it is configured
    - name: idmapd enabled
-     when: need_idmapd_start
+     when: need_idmapd_start|bool
      service: name={{ idmapd_service }} enabled=yes
 
 ### rpc.gssd
 
 # ubuntu
    - name: nfs-common
-     when: need_gssd_in_nfscommon
+     when: need_gssd_in_nfscommon|bool
      lineinfile:
        path: /etc/default/nfs-common
        regexp: '^\s*NEED_GSSD\s*='
@@ -234,25 +234,25 @@
 
 # for centos 6 and SLES
    - name: secure nfs
-     when: need_securenfs_in_nfs
+     when: need_securenfs_in_nfs|bool
      lineinfile:
        path: /etc/sysconfig/nfs
-       regexp: '^\s*{{ securenfs_in_nfs }}\s*='
-       line: '{{ securenfs_in_nfs }}=yes'
+       regexp: '^\s*{{ securenfs_in_nfs|bool }}\s*='
+       line: '{{ securenfs_in_nfs|bool }}=yes'
        state: present
 
 # for centos 7 it starts if /etc/krb5.keytab exists
 
 # on most systems it's started implicitly. But on Ubuntu it has to be started
    - name: gssd enabled
-     when: need_gssd_start
+     when: need_gssd_start|bool
      service: name={{ gssd_service }} enabled=yes
 
 ## starting. make sure idmapd and gssd are running
 ## if we have to start them also restart nfs
 
    - name: start idmapd if necessary
-     when: need_idmapd_start
+     when: need_idmapd_start|bool
      service: name={{ idmapd_service }} state=started
      notify:
        - restart nfs
@@ -266,7 +266,7 @@
 
 # centos has a parameter, ubuntu requires hacking the startup. yuck.
    - name: gssd.conf
-     when: gssd_param_in_script
+     when: gssd_param_in_script|bool
      lineinfile:
        path: /etc/init/gssd.conf
        regexp: '^\s*exec\s+rpc.gssd'
@@ -299,7 +299,7 @@
 
 # centos version is easier
    - name: systemconfig/nfs
-     when: gssd_param_in_sysconf
+     when: gssd_param_in_sysconf|bool
      lineinfile:
        path: /etc/sysconfig/nfs
        regexp: '^\s*{{ gssd_param_name_sysconf }}\s*='

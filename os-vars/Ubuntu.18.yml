@@ -36,5 +36,6 @@ ldap_packages: nscd,ldap-utils,libnss-ldapd
 nslcd_service: nslcd
 nslcd_group: nslcd
 need_logind_restart: yes
+need_sssd_timing_fix: yes
 
 

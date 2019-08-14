@@ -1,0 +1,2 @@
+30 * * * * root /usr/libexec/checkgssd >/tmp/checkgssd.log 2>&1
+

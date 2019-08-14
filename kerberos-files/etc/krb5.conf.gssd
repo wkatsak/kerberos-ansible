@@ -1,0 +1,5 @@
+[plugins]
+  ccselect = {
+     module = nfs:/usr/lib/ccselect_nfs.so
+  }
+
